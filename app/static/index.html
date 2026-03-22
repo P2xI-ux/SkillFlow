@@ -1,90 +1,302 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SkillFlow MVP</title>
+  <title>SkillFlow — современная платформа тестирования</title>
   <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 <body>
-  <header class="hero">
-    <div>
-      <p class="eyebrow">SkillFlow MVP</p>
-      <h1>Учебные тесты, модерация, рейтинг и Telegram-привязка</h1>
-      <p class="hero-copy">Прототип реализует ключевой цикл из ТЗ: регистрация, создание тестов, модерация преподавателем, прохождение тестов, рейтинг и достижения.</p>
-    </div>
-    <div class="hero-actions">
-      <button id="demoTeacherBtn" class="secondary">Быстрый вход как преподаватель</button>
-      <button id="logoutBtn">Выйти</button>
-    </div>
-  </header>
+  <div class="page-shell">
+    <header class="topbar neumorph-panel">
+      <a class="brand" href="#home" data-route="home">
+        <span class="brand-mark">SF</span>
+        <span>
+          <strong>SkillFlow</strong>
+          <small>Обучение, тесты, рейтинг</small>
+        </span>
+      </a>
 
-  <main class="layout">
-    <section class="card span-4">
-      <h2>Авторизация</h2>
-      <div class="tabs">
-        <button class="tab active" data-tab="login">Вход</button>
-        <button class="tab" data-tab="register">Регистрация</button>
+      <nav class="topbar-nav">
+        <button class="nav-link active" data-route="home">Главная</button>
+        <button class="nav-link" data-route="auth">Авторизация</button>
+        <button class="nav-link" data-route="dashboard">Личный кабинет</button>
+      </nav>
+
+      <div class="topbar-actions">
+        <button id="demoTeacherBtn" class="soft-button compact">Демо-преподаватель</button>
+        <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Переключить тему">
+          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>
+          </svg>
+          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3c-.08.33-.12.67-.12 1.02A7 7 0 0 0 18 11c.35 0 .69-.04 1.02-.12Z"/>
+          </svg>
+        </button>
+        <button id="logoutBtn" class="soft-button compact">Выйти</button>
       </div>
-      <form id="loginForm" class="stack">
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Пароль" required />
-        <button type="submit">Войти</button>
-      </form>
-      <form id="registerForm" class="stack hidden">
-        <input name="full_name" placeholder="Имя" required />
-        <input name="email" type="email" placeholder="Email" required />
-        <input name="password" type="password" placeholder="Пароль (минимум 6 символов)" required />
-        <select name="role" required>
-          <option value="STUDENT">Студент</option>
-          <option value="TEACHER">Преподаватель</option>
-        </select>
-        <input name="faculty" placeholder="Факультет / кафедра" />
-        <input name="study_group" placeholder="Группа (для студентов)" />
-        <input name="course" type="number" min="1" max="6" placeholder="Курс" />
-        <input name="department" placeholder="Кафедра (для преподавателей)" />
-        <button type="submit">Зарегистрироваться</button>
-      </form>
-      <p id="authMessage" class="message"></p>
-    </section>
+    </header>
 
-    <section class="card span-8">
-      <div class="section-header">
-        <div>
-          <h2>Профиль</h2>
-          <p>После входа здесь появятся данные пользователя и код для привязки Telegram.</p>
-        </div>
-        <button id="linkTelegramBtn" class="secondary">Получить код Telegram</button>
-      </div>
-      <div id="profileBox" class="profile-grid empty-state">Войдите, чтобы увидеть профиль.</div>
-    </section>
+    <main>
+      <section class="page active" data-page="home">
+        <section class="hero-grid">
+          <article class="hero-card neumorph-panel">
+            <p class="eyebrow">Neumorphism UI</p>
+            <h1>Зелёная экосистема для тестов, модерации и персонального роста.</h1>
+            <p class="hero-copy">SkillFlow объединяет студентов и преподавателей: публикация тестов, проверка знаний, рейтинг, достижения и модерация контента в едином кабинете.</p>
+            <div class="hero-actions">
+              <button class="primary-button" data-route="auth">Начать работу</button>
+              <button class="soft-button" data-route="dashboard">Открыть кабинет</button>
+            </div>
+            <div class="hero-stats">
+              <div>
+                <strong>24/7</strong>
+                <span>доступ к платформе</span>
+              </div>
+              <div>
+                <strong>3 роли</strong>
+                <span>студент, преподаватель, модератор</span>
+              </div>
+              <div>
+                <strong>Live</strong>
+                <span>обновляемый рейтинг</span>
+              </div>
+            </div>
+          </article>
 
-    <section class="card span-6">
-      <div class="section-header">
-        <div>
-          <h2>Каталог тестов</h2>
-          <p>Показываются только опубликованные тесты.</p>
-        </div>
-        <button id="refreshTestsBtn" class="secondary">Обновить</button>
-      </div>
-      <div id="testsList" class="list"></div>
-    </section>
+          <article class="showcase-card neumorph-panel inset-panel">
+            <div class="showcase-head">
+              <div>
+                <p class="eyebrow">Пульс платформы</p>
+                <h2>Рейтинг и ключевые сценарии</h2>
+              </div>
+              <span class="badge">Новая версия</span>
+            </div>
+            <div class="feature-list">
+              <div class="feature-item">
+                <span class="feature-icon">📚</span>
+                <div>
+                  <strong>Каталог тестов</strong>
+                  <p>Студент быстро выбирает тест по предмету и уровню сложности.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">🛡️</span>
+                <div>
+                  <strong>Модерация преподавателя</strong>
+                  <p>Все новые тесты проходят проверку и публикацию внутри предмета.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <span class="feature-icon">🏆</span>
+                <div>
+                  <strong>Геймификация</strong>
+                  <p>Рейтинг, достижения и история попыток помогают держать темп.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
 
-    <section class="card span-6">
-      <h2>Прохождение теста</h2>
-      <div id="testRunner" class="empty-state">Выберите тест из каталога.</div>
-    </section>
+        <section class="overview-grid">
+          <article class="neumorph-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Сценарии</p>
+                <h2>Что доступно ролям</h2>
+              </div>
+            </div>
+            <div class="roles-grid">
+              <div class="role-card inset-panel">
+                <h3>Студент</h3>
+                <ul>
+                  <li>Пройти тест из каталога</li>
+                  <li>Смотреть рейтинг и достижения</li>
+                  <li>Создавать свои тесты</li>
+                </ul>
+              </div>
+              <div class="role-card inset-panel">
+                <h3>Преподаватель</h3>
+                <ul>
+                  <li>Модерировать тесты по предмету</li>
+                  <li>Публиковать проверенные материалы</li>
+                  <li>Следить за активностью обучающихся</li>
+                </ul>
+              </div>
+              <div class="role-card inset-panel">
+                <h3>Администратор</h3>
+                <ul>
+                  <li>Управлять общими настройками</li>
+                  <li>Поддерживать интеграции</li>
+                  <li>Контролировать метрики платформы</li>
+                </ul>
+              </div>
+            </div>
+          </article>
 
-    <section class="card span-7">
-      <h2>Создание теста</h2>
-      <form id="createTestForm" class="stack">
-        <input name="title" placeholder="Название теста" required />
-        <textarea name="description" placeholder="Описание"></textarea>
-        <div class="inline-grid">
-          <select name="subject_id" id="subjectSelect" required></select>
-          <input name="difficulty" type="number" min="1" max="5" value="3" required />
-        </div>
-        <textarea name="questions_json" rows="12" required>{
+          <article class="neumorph-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Топ участников</p>
+                <h2>Рейтинг</h2>
+              </div>
+              <button id="refreshTestsBtn" class="soft-button compact">Обновить данные</button>
+            </div>
+            <div id="ratingsList" class="list rating-list"></div>
+          </article>
+        </section>
+      </section>
+
+      <section class="page" data-page="auth">
+        <section class="auth-layout">
+          <article class="neumorph-panel auth-intro">
+            <p class="eyebrow">Доступ к системе</p>
+            <h2>Авторизация и регистрация по ролям</h2>
+            <p>Выберите роль, чтобы увидеть персонализированную форму для входа или создания учётной записи.</p>
+            <div class="role-switch" id="roleSwitch">
+              <button class="role-pill active" type="button" data-role="STUDENT">Студент</button>
+              <button class="role-pill" type="button" data-role="TEACHER">Преподаватель</button>
+            </div>
+            <div class="auth-benefits">
+              <div class="inset-panel">
+                <strong>Студентам</strong>
+                <p>Доступ к каталогу тестов, достижениям и персональному рейтингу.</p>
+              </div>
+              <div class="inset-panel">
+                <strong>Преподавателям</strong>
+                <p>Проверка тестов, публикация материалов и контроль по предметам.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="neumorph-panel auth-card">
+            <div class="tabs segmented-control">
+              <button class="tab active" data-tab="login">Вход</button>
+              <button class="tab" data-tab="register">Регистрация</button>
+            </div>
+
+            <form id="loginForm" class="stack auth-form">
+              <div class="field-group">
+                <label for="loginEmail">Email</label>
+                <input id="loginEmail" name="email" type="email" placeholder="you@example.com" required />
+              </div>
+              <div class="field-group">
+                <label for="loginPassword">Пароль</label>
+                <input id="loginPassword" name="password" type="password" placeholder="••••••••" required />
+              </div>
+              <div class="inset-panel auth-hint" id="loginRoleHint"></div>
+              <button class="primary-button" type="submit">Войти</button>
+            </form>
+
+            <form id="registerForm" class="stack auth-form hidden">
+              <input type="hidden" name="role" id="registerRole" value="STUDENT" />
+              <div class="field-group">
+                <label for="registerName">Имя</label>
+                <input id="registerName" name="full_name" placeholder="Иван Петров" required />
+              </div>
+              <div class="field-row">
+                <div class="field-group">
+                  <label for="registerEmail">Email</label>
+                  <input id="registerEmail" name="email" type="email" placeholder="mail@example.com" required />
+                </div>
+                <div class="field-group">
+                  <label for="registerPassword">Пароль</label>
+                  <input id="registerPassword" name="password" type="password" placeholder="Минимум 6 символов" required />
+                </div>
+              </div>
+              <div class="field-group">
+                <label for="registerFaculty">Факультет / кафедра</label>
+                <input id="registerFaculty" name="faculty" placeholder="Информационные технологии" />
+              </div>
+              <div id="studentFields" class="stack">
+                <div class="field-row">
+                  <div class="field-group">
+                    <label for="registerGroup">Группа</label>
+                    <input id="registerGroup" name="study_group" placeholder="ПИ-21" />
+                  </div>
+                  <div class="field-group">
+                    <label for="registerCourse">Курс</label>
+                    <input id="registerCourse" name="course" type="number" min="1" max="6" placeholder="2" />
+                  </div>
+                </div>
+              </div>
+              <div id="teacherFields" class="stack hidden">
+                <div class="field-group">
+                  <label for="registerDepartment">Кафедра</label>
+                  <input id="registerDepartment" name="department" placeholder="Кафедра ИТ" />
+                </div>
+              </div>
+              <button class="primary-button" type="submit">Создать аккаунт</button>
+            </form>
+
+            <p id="authMessage" class="message"></p>
+          </article>
+        </section>
+      </section>
+
+      <section class="page" data-page="dashboard">
+        <section class="dashboard-grid">
+          <article class="neumorph-panel dashboard-sidebar">
+            <div class="section-title compact-title">
+              <div>
+                <p class="eyebrow">Профиль</p>
+                <h2>Личный кабинет</h2>
+              </div>
+              <button id="linkTelegramBtn" class="soft-button compact">Telegram</button>
+            </div>
+            <div id="profileBox" class="profile-grid empty-state">Войдите, чтобы увидеть профиль.</div>
+            <div class="role-actions-panel inset-panel">
+              <h3>Возможности роли</h3>
+              <div id="roleCapabilities" class="capability-list empty-state">После входа здесь появится список доступных действий.</div>
+            </div>
+          </article>
+
+          <article class="neumorph-panel dashboard-main">
+            <div class="dashboard-banner inset-panel">
+              <div>
+                <p class="eyebrow">Центр активности</p>
+                <h2>Тестирование, рейтинг и модерация</h2>
+                <p>Рабочая зона подстраивается под роль: студент видит каталог, тесты и создание материалов, преподаватель — очередь на модерацию и управление контентом.</p>
+              </div>
+              <button class="soft-button" data-route="home">На главную</button>
+            </div>
+
+            <div class="widget-grid">
+              <section class="neumorph-panel widget-card">
+                <div class="section-title compact-title">
+                  <div>
+                    <p class="eyebrow">Каталог</p>
+                    <h3>Тесты</h3>
+                  </div>
+                </div>
+                <div id="testsList" class="list"></div>
+              </section>
+
+              <section class="neumorph-panel widget-card student-only">
+                <div class="section-title compact-title">
+                  <div>
+                    <p class="eyebrow">Тестирование</p>
+                    <h3>Прохождение теста</h3>
+                  </div>
+                </div>
+                <div id="testRunner" class="empty-state">Выберите тест из каталога.</div>
+              </section>
+
+              <section class="neumorph-panel widget-card student-only">
+                <div class="section-title compact-title">
+                  <div>
+                    <p class="eyebrow">Авторский контент</p>
+                    <h3>Создать тест</h3>
+                  </div>
+                </div>
+                <form id="createTestForm" class="stack">
+                  <input name="title" placeholder="Название теста" required />
+                  <textarea name="description" placeholder="Описание"></textarea>
+                  <div class="field-row">
+                    <select name="subject_id" id="subjectSelect" required></select>
+                    <input name="difficulty" type="number" min="1" max="5" value="3" required />
+                  </div>
+                  <textarea name="questions_json" rows="12" required>{
   "questions": [
     {
       "text": "Что вернёт len('abc')?",
@@ -105,50 +317,44 @@
         {"text": "tuple", "is_correct": true},
         {"text": "switch", "is_correct": false}
       ]
-    },
-    {
-      "text": "Какой оператор сравнения равенства?",
-      "points": 5,
-      "question_type": "SINGLE_CHOICE",
-      "options": [
-        {"text": "=", "is_correct": false},
-        {"text": "==", "is_correct": true},
-        {"text": ":=", "is_correct": false}
-      ]
     }
   ]
 }</textarea>
-        <div class="inline-actions">
-          <button type="submit">Создать черновик</button>
-          <button type="button" id="submitLatestTestBtn" class="secondary">Отправить последний мой тест на модерацию</button>
-        </div>
-      </form>
-      <p id="createMessage" class="message"></p>
-    </section>
+                  <div class="inline-actions">
+                    <button class="primary-button" type="submit">Сохранить черновик</button>
+                    <button type="button" id="submitLatestTestBtn" class="soft-button">Отправить на модерацию</button>
+                  </div>
+                </form>
+                <p id="createMessage" class="message"></p>
+              </section>
 
-    <section class="card span-5">
-      <h2>Модерация</h2>
-      <div class="inline-actions">
-        <button id="loadPendingBtn" class="secondary">Загрузить очередь</button>
-      </div>
-      <div id="pendingList" class="list empty-state">Только преподаватель может модерировать тесты.</div>
-    </section>
+              <section class="neumorph-panel widget-card teacher-only">
+                <div class="section-title compact-title">
+                  <div>
+                    <p class="eyebrow">Контроль качества</p>
+                    <h3>Модерация</h3>
+                  </div>
+                  <button id="loadPendingBtn" class="soft-button compact">Обновить очередь</button>
+                </div>
+                <div id="pendingList" class="list empty-state">Только преподаватель может модерировать тесты.</div>
+              </section>
 
-    <section class="card span-6">
-      <h2>Рейтинг</h2>
-      <div id="ratingsList" class="list"></div>
-    </section>
-
-    <section class="card span-6">
-      <h2>Достижения и статистика</h2>
-      <div id="statsBox" class="stack empty-state">После прохождения тестов здесь появится статистика.</div>
-      <div id="achievementsList" class="list"></div>
-    </section>
-  </main>
-
-  <template id="testCardTemplate">
-    <article class="list-item"></article>
-  </template>
+              <section class="neumorph-panel widget-card student-only">
+                <div class="section-title compact-title">
+                  <div>
+                    <p class="eyebrow">Аналитика</p>
+                    <h3>Статистика и достижения</h3>
+                  </div>
+                </div>
+                <div id="statsBox" class="stack empty-state">После прохождения тестов здесь появится статистика.</div>
+                <div id="achievementsList" class="list"></div>
+              </section>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </div>
 
   <script src="/static/js/app.js" type="module"></script>
 </body>
