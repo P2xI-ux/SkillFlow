@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkillFlow MVP</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">SkillFlow MVP</p>
+      <h1>Учебные тесты, модерация, рейтинг и Telegram-привязка</h1>
+      <p class="hero-copy">Прототип реализует ключевой цикл из ТЗ: регистрация, создание тестов, модерация преподавателем, прохождение тестов, рейтинг и достижения.</p>
+    </div>
+    <div class="hero-actions">
+      <button id="demoTeacherBtn" class="secondary">Быстрый вход как преподаватель</button>
+      <button id="logoutBtn">Выйти</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="card span-4">
+      <h2>Авторизация</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="login">Вход</button>
+        <button class="tab" data-tab="register">Регистрация</button>
+      </div>
+      <form id="loginForm" class="stack">
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Пароль" required />
+        <button type="submit">Войти</button>
+      </form>
+      <form id="registerForm" class="stack hidden">
+        <input name="full_name" placeholder="Имя" required />
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Пароль (минимум 6 символов)" required />
+        <select name="role" required>
+          <option value="STUDENT">Студент</option>
+          <option value="TEACHER">Преподаватель</option>
+        </select>
+        <input name="faculty" placeholder="Факультет / кафедра" />
+        <input name="study_group" placeholder="Группа (для студентов)" />
+        <input name="course" type="number" min="1" max="6" placeholder="Курс" />
+        <input name="department" placeholder="Кафедра (для преподавателей)" />
+        <button type="submit">Зарегистрироваться</button>
+      </form>
+      <p id="authMessage" class="message"></p>
+    </section>
+
+    <section class="card span-8">
+      <div class="section-header">
+        <div>
+          <h2>Профиль</h2>
+          <p>После входа здесь появятся данные пользователя и код для привязки Telegram.</p>
+        </div>
+        <button id="linkTelegramBtn" class="secondary">Получить код Telegram</button>
+      </div>
+      <div id="profileBox" class="profile-grid empty-state">Войдите, чтобы увидеть профиль.</div>
+    </section>
+
+    <section class="card span-6">
+      <div class="section-header">
+        <div>
+          <h2>Каталог тестов</h2>
+          <p>Показываются только опубликованные тесты.</p>
+        </div>
+        <button id="refreshTestsBtn" class="secondary">Обновить</button>
+      </div>
+      <div id="testsList" class="list"></div>
+    </section>
+
+    <section class="card span-6">
+      <h2>Прохождение теста</h2>
+      <div id="testRunner" class="empty-state">Выберите тест из каталога.</div>
+    </section>
+
+    <section class="card span-7">
+      <h2>Создание теста</h2>
+      <form id="createTestForm" class="stack">
+        <input name="title" placeholder="Название теста" required />
+        <textarea name="description" placeholder="Описание"></textarea>
+        <div class="inline-grid">
+          <select name="subject_id" id="subjectSelect" required></select>
+          <input name="difficulty" type="number" min="1" max="5" value="3" required />
+        </div>
+        <textarea name="questions_json" rows="12" required>{
+  "questions": [
+    {
+      "text": "Что вернёт len('abc')?",
+      "points": 5,
+      "question_type": "SINGLE_CHOICE",
+      "options": [
+        {"text": "2", "is_correct": false},
+        {"text": "3", "is_correct": true},
+        {"text": "4", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Какие типы коллекций есть в Python?",
+      "points": 5,
+      "question_type": "MULTIPLE_CHOICE",
+      "options": [
+        {"text": "list", "is_correct": true},
+        {"text": "tuple", "is_correct": true},
+        {"text": "switch", "is_correct": false}
+      ]
+    },
+    {
+      "text": "Какой оператор сравнения равенства?",
+      "points": 5,
+      "question_type": "SINGLE_CHOICE",
+      "options": [
+        {"text": "=", "is_correct": false},
+        {"text": "==", "is_correct": true},
+        {"text": ":=", "is_correct": false}
+      ]
+    }
+  ]
+}</textarea>
+        <div class="inline-actions">
+          <button type="submit">Создать черновик</button>
+          <button type="button" id="submitLatestTestBtn" class="secondary">Отправить последний мой тест на модерацию</button>
+        </div>
+      </form>
+      <p id="createMessage" class="message"></p>
+    </section>
+
+    <section class="card span-5">
+      <h2>Модерация</h2>
+      <div class="inline-actions">
+        <button id="loadPendingBtn" class="secondary">Загрузить очередь</button>
+      </div>
+      <div id="pendingList" class="list empty-state">Только преподаватель может модерировать тесты.</div>
+    </section>
+
+    <section class="card span-6">
+      <h2>Рейтинг</h2>
+      <div id="ratingsList" class="list"></div>
+    </section>
+
+    <section class="card span-6">
+      <h2>Достижения и статистика</h2>
+      <div id="statsBox" class="stack empty-state">После прохождения тестов здесь появится статистика.</div>
+      <div id="achievementsList" class="list"></div>
+    </section>
+  </main>
+
+  <template id="testCardTemplate">
+    <article class="list-item"></article>
+  </template>
+
+  <script src="/static/js/app.js" type="module"></script>
+</body>
+</html>
