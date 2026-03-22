@@ -1,13 +1,12 @@
 import random
 import string
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import decode_access_token
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_current_user_optional
 from app.models.entities import Subject, Test, User
 from app.models.enums import Role, TestStatus
 from app.repositories.achievement_repository import AchievementRepository
@@ -211,21 +210,6 @@ def connect_telegram(payload: TelegramConnectRequest, db: Session = Depends(get_
     db.add(user)
     db.commit()
     return {"status": "connected", "email": user.email}
-
-
-
-def get_current_user_optional(
-    db: Session = Depends(get_db),
-    authorization: str | None = Header(default=None),
-):
-    if not authorization or not authorization.startswith("Bearer "):
-        return None
-    user_id = decode_access_token(authorization.replace("Bearer ", ""))
-    if not user_id:
-        return None
-    return UserRepository(db).get_by_id(User, int(user_id))
-
-
 
 def serialize_test_list_item(test: Test):
     return {
