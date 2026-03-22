@@ -1,3 +1,4 @@
+from app.core.security import get_password_hash, verify_password
 from app.models.enums import TestStatus
 from app.services.event_bus import EventBus
 from app.services.rating_strategy import BonusStrategy, RatingStrategyFactory, StandardStrategy, TournamentStrategy
@@ -36,3 +37,20 @@ def test_event_bus_collects_messages_from_subscribers():
     bus = EventBus()
     bus.subscribe("TEST_COMPLETED", lambda event: ["earned"])
     assert bus.publish("TEST_COMPLETED", {"student_id": 1}) == ["earned"]
+
+
+def test_password_hashing_supports_short_passwords():
+    password = "123456"
+
+    hashed_password = get_password_hash(password)
+
+    assert hashed_password != password
+    assert verify_password(password, hashed_password)
+
+
+def test_password_hashing_supports_unicode_passwords():
+    password = "пароль6"
+
+    hashed_password = get_password_hash(password)
+
+    assert verify_password(password, hashed_password)
