@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SkillFlow — современная платформа тестирования</title>
+  <title>SkillFlow — платформа развития и тестирования</title>
   <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
-<body>
+<body data-page="home">
   <div class="page-shell">
     <header class="topbar neumorph-panel">
-      <a class="brand" href="#home" data-route="home">
+      <a class="brand" href="/">
         <span class="brand-mark">SF</span>
         <span>
           <strong>SkillFlow</strong>
-          <small>Обучение, тесты, рейтинг</small>
+          <small>Персональный рост через практику и тестирование</small>
         </span>
       </a>
 
       <nav class="topbar-nav">
-        <button class="nav-link active" data-route="home">Главная</button>
-        <button class="nav-link" data-route="auth">Авторизация</button>
-        <button class="nav-link" data-route="dashboard">Личный кабинет</button>
+        <a class="nav-link active" href="/">Главная</a>
+        <a class="nav-link" href="/auth" data-auth-nav>Войти</a>
+        <a class="nav-link" href="/dashboard">Личный кабинет</a>
       </nav>
 
       <div class="topbar-actions">
-        <button id="demoTeacherBtn" class="soft-button compact">Демо-преподаватель</button>
+        <button id="demoTeacherBtn" class="soft-button compact" type="button">Демо-преподаватель</button>
         <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Переключить тему">
           <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>
@@ -33,325 +33,122 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3c-.08.33-.12.67-.12 1.02A7 7 0 0 0 18 11c.35 0 .69-.04 1.02-.12Z"/>
           </svg>
         </button>
-        <button id="logoutBtn" class="soft-button compact">Выйти</button>
+        <button id="logoutBtn" class="soft-button compact hidden" type="button">Выйти</button>
       </div>
     </header>
 
     <main>
-      <section class="page active" data-page="home">
-        <section class="hero-grid">
-          <article class="hero-card neumorph-panel">
-            <p class="eyebrow">Neumorphism UI</p>
-            <h1>Зелёная экосистема для тестов, модерации и персонального роста.</h1>
-            <p class="hero-copy">SkillFlow объединяет студентов и преподавателей: публикация тестов, проверка знаний, рейтинг, достижения и модерация контента в едином кабинете.</p>
-            <div class="hero-actions">
-              <button class="primary-button" data-route="auth">Начать работу</button>
-              <button class="soft-button" data-route="dashboard">Открыть кабинет</button>
+      <section class="hero-grid">
+        <article class="hero-card neumorph-panel">
+          <p class="eyebrow">Единое пространство для обучения</p>
+          <h1>Поддерживайте темп обучения с понятными тестами, прогрессом и персональными рекомендациями.</h1>
+          <p class="hero-copy">SkillFlow помогает пользователю не просто проходить проверки, а видеть собственный прогресс, быстро возвращаться к важным темам и строить траекторию развития на основе результатов.</p>
+          <div class="hero-actions">
+            <a id="homePrimaryCta" class="primary-button" href="/auth" data-auth-cta>Войти</a>
+            <a class="soft-button" href="/dashboard">Открыть кабинет</a>
+          </div>
+          <div class="hero-stats">
+            <div>
+              <strong>1 место</strong>
+              <span>для всех учебных сценариев в одном интерфейсе</span>
             </div>
-            <div class="hero-stats">
-              <div>
-                <strong>24/7</strong>
-                <span>доступ к платформе</span>
-              </div>
-              <div>
-                <strong>3 роли</strong>
-                <span>студент, преподаватель, модератор</span>
-              </div>
-              <div>
-                <strong>Live</strong>
-                <span>обновляемый рейтинг</span>
-              </div>
+            <div>
+              <strong>3 роли</strong>
+              <span>студент, преподаватель, администратор</span>
             </div>
-          </article>
+            <div>
+              <strong>24/7</strong>
+              <span>доступ к материалам и результатам</span>
+            </div>
+          </div>
+        </article>
 
-          <article class="showcase-card neumorph-panel inset-panel">
-            <div class="showcase-head">
+        <article class="showcase-card neumorph-panel inset-panel">
+          <div class="showcase-head">
+            <div>
+              <p class="eyebrow">Зачем пользователю</p>
+              <h2>Платформа, которая помогает двигаться вперёд</h2>
+            </div>
+            <span class="badge">User first</span>
+          </div>
+          <div class="feature-list">
+            <div class="feature-item">
+              <span class="feature-icon">🎯</span>
               <div>
-                <p class="eyebrow">Пульс платформы</p>
-                <h2>Рейтинг и ключевые сценарии</h2>
-              </div>
-              <span class="badge">Новая версия</span>
-            </div>
-            <div class="feature-list">
-              <div class="feature-item">
-                <span class="feature-icon">📚</span>
-                <div>
-                  <strong>Каталог тестов</strong>
-                  <p>Студент быстро выбирает тест по предмету и уровню сложности.</p>
-                </div>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🛡️</span>
-                <div>
-                  <strong>Модерация преподавателя</strong>
-                  <p>Все новые тесты проходят проверку и публикацию внутри предмета.</p>
-                </div>
-              </div>
-              <div class="feature-item">
-                <span class="feature-icon">🏆</span>
-                <div>
-                  <strong>Геймификация</strong>
-                  <p>Рейтинг, достижения и история попыток помогают держать темп.</p>
-                </div>
+                <strong>Фокус на целях</strong>
+                <p>Личный кабинет показывает приоритетные действия: что пройти сейчас, что улучшить и где вы уже сильны.</p>
               </div>
             </div>
-          </article>
-        </section>
-
-        <section class="overview-grid">
-          <article class="neumorph-panel">
-            <div class="section-title">
+            <div class="feature-item">
+              <span class="feature-icon">📈</span>
               <div>
-                <p class="eyebrow">Сценарии</p>
-                <h2>Что доступно ролям</h2>
+                <strong>Прозрачный прогресс</strong>
+                <p>Результаты тестов, достижения и рейтинг собраны в одном месте и обновляются после каждой попытки.</p>
               </div>
             </div>
-            <div class="roles-grid">
-              <div class="role-card inset-panel">
-                <h3>Студент</h3>
-                <ul>
-                  <li>Пройти тест из каталога</li>
-                  <li>Смотреть рейтинг и достижения</li>
-                  <li>Создавать свои тесты</li>
-                </ul>
-              </div>
-              <div class="role-card inset-panel">
-                <h3>Преподаватель</h3>
-                <ul>
-                  <li>Модерировать тесты по предмету</li>
-                  <li>Публиковать проверенные материалы</li>
-                  <li>Следить за активностью обучающихся</li>
-                </ul>
-              </div>
-              <div class="role-card inset-panel">
-                <h3>Администратор</h3>
-                <ul>
-                  <li>Управлять общими настройками</li>
-                  <li>Поддерживать интеграции</li>
-                  <li>Контролировать метрики платформы</li>
-                </ul>
-              </div>
-            </div>
-          </article>
-
-          <article class="neumorph-panel">
-            <div class="section-title">
+            <div class="feature-item">
+              <span class="feature-icon">🤝</span>
               <div>
-                <p class="eyebrow">Топ участников</p>
-                <h2>Рейтинг</h2>
+                <strong>Комфортное взаимодействие</strong>
+                <p>Студенты проходят тесты и создают материалы, преподаватели модерируют контент без лишних переходов между системами.</p>
               </div>
-              <button id="refreshTestsBtn" class="soft-button compact">Обновить данные</button>
             </div>
-            <div id="ratingsList" class="list rating-list"></div>
-          </article>
-        </section>
+          </div>
+        </article>
       </section>
 
-      <section class="page" data-page="auth">
-        <section class="auth-layout">
-          <article class="neumorph-panel auth-intro">
-            <p class="eyebrow">Доступ к системе</p>
-            <h2>Авторизация и регистрация по ролям</h2>
-            <p>Выберите роль, чтобы увидеть персонализированную форму для входа или создания учётной записи.</p>
-            <div class="role-switch" id="roleSwitch">
-              <button class="role-pill active" type="button" data-role="STUDENT">Студент</button>
-              <button class="role-pill" type="button" data-role="TEACHER">Преподаватель</button>
+      <section class="overview-grid">
+        <article class="neumorph-panel">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Пользовательский путь</p>
+              <h2>Как работает SkillFlow</h2>
             </div>
-            <div class="auth-benefits">
-              <div class="inset-panel">
-                <strong>Студентам</strong>
-                <p>Доступ к каталогу тестов, достижениям и персональному рейтингу.</p>
-              </div>
-              <div class="inset-panel">
-                <strong>Преподавателям</strong>
-                <p>Проверка тестов, публикация материалов и контроль по предметам.</p>
-              </div>
+          </div>
+          <div class="journey-grid">
+            <div class="journey-step inset-panel">
+              <strong>1. Войдите в систему</strong>
+              <p>Быстрый вход или регистрация открывают персональный доступ к возможностям вашей роли.</p>
             </div>
-          </article>
-
-          <article class="neumorph-panel auth-card">
-            <div class="tabs segmented-control">
-              <button class="tab active" data-tab="login">Вход</button>
-              <button class="tab" data-tab="register">Регистрация</button>
+            <div class="journey-step inset-panel">
+              <strong>2. Выберите действие</strong>
+              <p>Проходите тесты, развивайте свои навыки или управляйте качеством контента в кабинете.</p>
             </div>
+            <div class="journey-step inset-panel">
+              <strong>3. Следите за ростом</strong>
+              <p>Система сохраняет динамику результатов, чтобы было проще видеть прогресс и следующие шаги.</p>
+            </div>
+          </div>
+        </article>
 
-            <form id="loginForm" class="stack auth-form">
-              <div class="field-group">
-                <label for="loginEmail">Email</label>
-                <input id="loginEmail" name="email" type="email" placeholder="you@example.com" required />
-              </div>
-              <div class="field-group">
-                <label for="loginPassword">Пароль</label>
-                <input id="loginPassword" name="password" type="password" placeholder="••••••••" required />
-              </div>
-              <div class="inset-panel auth-hint" id="loginRoleHint"></div>
-              <button class="primary-button" type="submit">Войти</button>
-            </form>
-
-            <form id="registerForm" class="stack auth-form hidden">
-              <input type="hidden" name="role" id="registerRole" value="STUDENT" />
-              <div class="field-group">
-                <label for="registerName">Имя</label>
-                <input id="registerName" name="full_name" placeholder="Иван Петров" required />
-              </div>
-              <div class="field-row">
-                <div class="field-group">
-                  <label for="registerEmail">Email</label>
-                  <input id="registerEmail" name="email" type="email" placeholder="mail@example.com" required />
-                </div>
-                <div class="field-group">
-                  <label for="registerPassword">Пароль</label>
-                  <input id="registerPassword" name="password" type="password" placeholder="Минимум 6 символов" required />
-                </div>
-              </div>
-              <div class="field-group">
-                <label for="registerFaculty">Факультет / кафедра</label>
-                <input id="registerFaculty" name="faculty" placeholder="Информационные технологии" />
-              </div>
-              <div id="studentFields" class="stack">
-                <div class="field-row">
-                  <div class="field-group">
-                    <label for="registerGroup">Группа</label>
-                    <input id="registerGroup" name="study_group" placeholder="ПИ-21" />
-                  </div>
-                  <div class="field-group">
-                    <label for="registerCourse">Курс</label>
-                    <input id="registerCourse" name="course" type="number" min="1" max="6" placeholder="2" />
-                  </div>
-                </div>
-              </div>
-              <div id="teacherFields" class="stack hidden">
-                <div class="field-group">
-                  <label for="registerDepartment">Кафедра</label>
-                  <input id="registerDepartment" name="department" placeholder="Кафедра ИТ" />
-                </div>
-              </div>
-              <button class="primary-button" type="submit">Создать аккаунт</button>
-            </form>
-
-            <p id="authMessage" class="message"></p>
-          </article>
-        </section>
+        <article class="neumorph-panel">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Топ участников</p>
+              <h2>Рейтинг</h2>
+            </div>
+            <button id="refreshTestsBtn" class="soft-button compact" type="button">Обновить данные</button>
+          </div>
+          <div id="ratingsList" class="list rating-list"></div>
+        </article>
       </section>
 
-      <section class="page" data-page="dashboard">
-        <section class="dashboard-grid">
-          <article class="neumorph-panel dashboard-sidebar">
-            <div class="section-title compact-title">
-              <div>
-                <p class="eyebrow">Профиль</p>
-                <h2>Личный кабинет</h2>
-              </div>
-              <button id="linkTelegramBtn" class="soft-button compact">Telegram</button>
-            </div>
-            <div id="profileBox" class="profile-grid empty-state">Войдите, чтобы увидеть профиль.</div>
-            <div class="role-actions-panel inset-panel">
-              <h3>Возможности роли</h3>
-              <div id="roleCapabilities" class="capability-list empty-state">После входа здесь появится список доступных действий.</div>
-            </div>
-          </article>
-
-          <article class="neumorph-panel dashboard-main">
-            <div class="dashboard-banner inset-panel">
-              <div>
-                <p class="eyebrow">Центр активности</p>
-                <h2>Тестирование, рейтинг и модерация</h2>
-                <p>Рабочая зона подстраивается под роль: студент видит каталог, тесты и создание материалов, преподаватель — очередь на модерацию и управление контентом.</p>
-              </div>
-              <button class="soft-button" data-route="home">На главную</button>
-            </div>
-
-            <div class="widget-grid">
-              <section class="neumorph-panel widget-card">
-                <div class="section-title compact-title">
-                  <div>
-                    <p class="eyebrow">Каталог</p>
-                    <h3>Тесты</h3>
-                  </div>
-                </div>
-                <div id="testsList" class="list"></div>
-              </section>
-
-              <section class="neumorph-panel widget-card student-only">
-                <div class="section-title compact-title">
-                  <div>
-                    <p class="eyebrow">Тестирование</p>
-                    <h3>Прохождение теста</h3>
-                  </div>
-                </div>
-                <div id="testRunner" class="empty-state">Выберите тест из каталога.</div>
-              </section>
-
-              <section class="neumorph-panel widget-card student-only">
-                <div class="section-title compact-title">
-                  <div>
-                    <p class="eyebrow">Авторский контент</p>
-                    <h3>Создать тест</h3>
-                  </div>
-                </div>
-                <form id="createTestForm" class="stack">
-                  <input name="title" placeholder="Название теста" required />
-                  <textarea name="description" placeholder="Описание"></textarea>
-                  <div class="field-row">
-                    <select name="subject_id" id="subjectSelect" required></select>
-                    <input name="difficulty" type="number" min="1" max="5" value="3" required />
-                  </div>
-                  <textarea name="questions_json" rows="12" required>{
-  "questions": [
-    {
-      "text": "Что вернёт len('abc')?",
-      "points": 5,
-      "question_type": "SINGLE_CHOICE",
-      "options": [
-        {"text": "2", "is_correct": false},
-        {"text": "3", "is_correct": true},
-        {"text": "4", "is_correct": false}
-      ]
-    },
-    {
-      "text": "Какие типы коллекций есть в Python?",
-      "points": 5,
-      "question_type": "MULTIPLE_CHOICE",
-      "options": [
-        {"text": "list", "is_correct": true},
-        {"text": "tuple", "is_correct": true},
-        {"text": "switch", "is_correct": false}
-      ]
-    }
-  ]
-}</textarea>
-                  <div class="inline-actions">
-                    <button class="primary-button" type="submit">Сохранить черновик</button>
-                    <button type="button" id="submitLatestTestBtn" class="soft-button">Отправить на модерацию</button>
-                  </div>
-                </form>
-                <p id="createMessage" class="message"></p>
-              </section>
-
-              <section class="neumorph-panel widget-card teacher-only">
-                <div class="section-title compact-title">
-                  <div>
-                    <p class="eyebrow">Контроль качества</p>
-                    <h3>Модерация</h3>
-                  </div>
-                  <button id="loadPendingBtn" class="soft-button compact">Обновить очередь</button>
-                </div>
-                <div id="pendingList" class="list empty-state">Только преподаватель может модерировать тесты.</div>
-              </section>
-
-              <section class="neumorph-panel widget-card student-only">
-                <div class="section-title compact-title">
-                  <div>
-                    <p class="eyebrow">Аналитика</p>
-                    <h3>Статистика и достижения</h3>
-                  </div>
-                </div>
-                <div id="statsBox" class="stack empty-state">После прохождения тестов здесь появится статистика.</div>
-                <div id="achievementsList" class="list"></div>
-              </section>
-            </div>
-          </article>
-        </section>
+      <section class="audience-grid">
+        <article class="neumorph-panel audience-card">
+          <p class="eyebrow">Студенту</p>
+          <h3>От первых попыток до уверенного результата</h3>
+          <p>Получайте доступ к тестам, достижениям, истории попыток и созданию собственных материалов в одном месте.</p>
+        </article>
+        <article class="neumorph-panel audience-card">
+          <p class="eyebrow">Преподавателю</p>
+          <h3>Контроль качества без перегрузки</h3>
+          <p>Проверяйте новые тесты, поддерживайте качество контента и отслеживайте вовлечённость обучающихся.</p>
+        </article>
+        <article class="neumorph-panel audience-card">
+          <p class="eyebrow">Администратору</p>
+          <h3>Общая картина по платформе</h3>
+          <p>Управляйте процессами, следите за стабильностью и развивайте экосистему на основе данных.</p>
+        </article>
       </section>
     </main>
   </div>
