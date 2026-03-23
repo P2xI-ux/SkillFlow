@@ -1,7 +1,6 @@
-from collections import defaultdict
 from datetime import datetime
 
-from app.models.entities import Test, TestAttempt, UserAnswer
+from app.models.entities import Test, TestAttempt, User, UserAnswer
 from app.models.enums import AttemptStatus, Role, TestStatus
 from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.attempt_repository import AttemptRepository
@@ -48,6 +47,11 @@ class TestService:
         self.event_bus._skillflow_registered = True
 
     def create_test(self, payload, author_id: int):
+        author = self.user_repository.get_by_id(User, author_id)
+        if not author:
+            raise ValueError("Автор теста не найден")
+        if author.role != Role.STUDENT:
+            raise ValueError("Создавать тесты может только студент")
         test = Test(
             title=payload.title,
             description=payload.description,
@@ -86,6 +90,9 @@ class TestService:
         test = self.test_repository.get_full(test_id)
         if not test:
             raise ValueError("Тест не найден")
+        allowed_subject_ids = {subject.id for subject in current_user.teaching_subjects}
+        if test.subject_id not in allowed_subject_ids:
+            raise ValueError("Можно модерировать только тесты по своим дисциплинам")
         machine = TestStateMachine(test.status)
         if action == "approve":
             machine.apply(test, "approve")
@@ -101,6 +108,8 @@ class TestService:
         return test
 
     def take_test(self, test_id: int, current_user, answers: list):
+        if current_user.role != Role.STUDENT:
+            raise ValueError("Проходить тесты может только студент")
         test = self.test_repository.get_full(test_id)
         if not test or test.status != TestStatus.PUBLISHED:
             raise ValueError("Опубликованный тест не найден")

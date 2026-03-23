@@ -21,6 +21,7 @@ class UserRegister(BaseModel):
     study_group: str | None = None
     course: int | None = None
     department: str | None = None
+    subject_ids: list[int] = Field(default_factory=list)
 
 
 class UserLogin(BaseModel):
@@ -39,6 +40,7 @@ class UserResponse(BaseModel):
     department: str | None = None
     telegram_id: str | None = None
     telegram_link_code: str | None = None
+    teaching_subjects: list["SubjectResponse"] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -60,7 +62,7 @@ class AnswerOptionCreate(BaseModel):
 
 class QuestionCreate(BaseModel):
     text: str
-    points: int = Field(ge=1, le=10)
+    points: int = Field(ge=1, le=25)
     question_type: QuestionType
     options: list[AnswerOptionCreate] = Field(min_length=2, max_length=10)
 
@@ -70,7 +72,7 @@ class TestCreate(BaseModel):
     description: str = ""
     subject_id: int
     difficulty: int = Field(ge=1, le=5)
-    questions: list[QuestionCreate] = Field(min_length=3, max_length=50)
+    questions: list[QuestionCreate] = Field(min_length=1, max_length=50)
 
 
 class AnswerOptionResponse(BaseModel):

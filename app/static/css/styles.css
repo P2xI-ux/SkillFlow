@@ -190,8 +190,6 @@ html[data-theme='dark'] .icon-sun { display: none; }
 html[data-theme='dark'] .icon-moon { display: block; }
 
 main { margin-top: 28px; }
-.page { display: none; }
-.page.active { display: block; }
 
 .hero-grid,
 .overview-grid,
@@ -385,4 +383,112 @@ textarea { resize: vertical; min-height: 140px; }
   .hero-stats,
   .section-title,
   .inline-actions { flex-direction: column; }
+}
+
+
+.page-title {
+  max-width: 14ch;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.journey-grid,
+.audience-grid,
+.spotlight-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.journey-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.audience-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 20px;
+}
+
+.journey-step,
+.audience-card,
+.role-spotlight,
+.spotlight-card,
+.support-card {
+  padding: 22px;
+}
+
+.role-spotlight {
+  margin-bottom: 22px;
+}
+
+.spotlight-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.audience-card h3,
+.spotlight-card strong,
+.journey-step strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+
+.helper-text {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.multi-select {
+  min-height: 140px;
+}
+
+.constructor-shell {
+  gap: 18px;
+}
+
+.constructor-toolbar,
+.answer-option {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.helper-chip {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+
+.builder-question,
+.answers-block {
+  display: grid;
+  gap: 16px;
+}
+
+.answer-option {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--surface-strong);
+  box-shadow: inset 3px 3px 8px rgba(255,255,255,0.22), inset -4px -4px 10px rgba(0,0,0,0.06);
+}
+
+.answer-correct-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.answer-text-input {
+  flex: 1 1 240px;
+}
+
+@media (max-width: 640px) {
+  .constructor-toolbar,
+  .answer-option {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

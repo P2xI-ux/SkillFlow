@@ -32,6 +32,8 @@ class TestRepository(Repository):
         stmt = self._list_base().where(Test.author_id == author_id)
         return self.db.scalars(stmt.order_by(Test.created_at.desc())).unique().all()
 
-    def get_pending(self):
+    def get_pending(self, subject_ids: list[int] | None = None):
         stmt = self._list_base().where(Test.status == TestStatus.PENDING_MODERATION)
+        if subject_ids:
+            stmt = stmt.where(Test.subject_id.in_(subject_ids))
         return self.db.scalars(stmt.order_by(Test.created_at.asc())).unique().all()

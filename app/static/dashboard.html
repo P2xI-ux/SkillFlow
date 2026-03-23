@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkillFlow — личный кабинет</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body data-page="dashboard">
+  <div class="page-shell">
+    <header class="topbar neumorph-panel">
+      <a class="brand" href="/">
+        <span class="brand-mark">SF</span>
+        <span>
+          <strong>SkillFlow</strong>
+          <small>Персональная рабочая зона</small>
+        </span>
+      </a>
+
+      <nav class="topbar-nav">
+        <a class="nav-link" href="/">Главная</a>
+        <a class="nav-link" href="/auth" data-auth-nav>Войти</a>
+        <a class="nav-link active" href="/dashboard">Личный кабинет</a>
+      </nav>
+
+      <div class="topbar-actions">
+        <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Переключить тему">
+          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>
+          </svg>
+          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3c-.08.33-.12.67-.12 1.02A7 7 0 0 0 18 11c.35 0 .69-.04 1.02-.12Z"/>
+          </svg>
+        </button>
+        <button id="logoutBtn" class="soft-button compact" type="button">Выйти</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="dashboard-grid">
+        <article class="neumorph-panel dashboard-sidebar">
+          <div class="section-title compact-title">
+            <div>
+              <p class="eyebrow">Профиль</p>
+              <h2>Личный кабинет</h2>
+            </div>
+            <button id="linkTelegramBtn" class="soft-button compact" type="button">Telegram</button>
+          </div>
+          <div id="profileBox" class="profile-grid empty-state">Загрузка профиля...</div>
+          <div class="role-actions-panel inset-panel">
+            <h3>Возможности роли</h3>
+            <div id="roleCapabilities" class="capability-list empty-state">Загрузка доступных действий...</div>
+          </div>
+        </article>
+
+        <article class="neumorph-panel dashboard-main">
+          <div class="dashboard-banner inset-panel">
+            <div>
+              <p class="eyebrow">Центр активности</p>
+              <h2 id="dashboardHeading">Рабочая зона</h2>
+              <p id="dashboardLead">Контент кабинета подстраивается под вашу роль и показывает только нужные разделы.</p>
+            </div>
+            <a class="soft-button" href="/">На главную</a>
+          </div>
+
+          <section id="dashboardRoleSpotlight" class="role-spotlight neumorph-panel"></section>
+
+          <div class="widget-grid">
+            <section class="neumorph-panel widget-card student-only">
+              <div class="section-title compact-title">
+                <div>
+                  <p class="eyebrow">Каталог</p>
+                  <h3>Тесты</h3>
+                </div>
+              </div>
+              <div id="testsList" class="list"></div>
+            </section>
+
+            <section class="neumorph-panel widget-card student-only">
+              <div class="section-title compact-title">
+                <div>
+                  <p class="eyebrow">Тестирование</p>
+                  <h3>Прохождение теста</h3>
+                </div>
+              </div>
+              <div id="testRunner" class="empty-state">Выберите тест из каталога.</div>
+            </section>
+
+            <section class="neumorph-panel widget-card student-only">
+              <div class="section-title compact-title">
+                <div>
+                  <p class="eyebrow">Конструктор</p>
+                  <h3>Создать тест</h3>
+                </div>
+              </div>
+              <form id="createTestForm" class="stack constructor-shell">
+                <input name="title" id="testTitleInput" placeholder="Название теста" required />
+                <textarea name="description" id="testDescriptionInput" placeholder="Описание теста"></textarea>
+                <div class="field-group">
+                  <label for="subjectSelect">Дисциплина</label>
+                  <select name="subject_id" id="subjectSelect" required></select>
+                </div>
+                <div class="constructor-toolbar">
+                  <button id="addQuestionBtn" class="soft-button" type="button">Добавить вопрос</button>
+                  <span id="constructorSummary" class="helper-chip">Вопросов: 0</span>
+                </div>
+                <div id="constructorQuestions" class="stack empty-state">Добавьте первый вопрос, чтобы собрать тест.</div>
+                <div class="inline-actions">
+                  <button class="primary-button" type="submit">Сохранить черновик</button>
+                  <button type="button" id="submitLatestTestBtn" class="soft-button">Отправить на модерацию</button>
+                </div>
+              </form>
+              <p id="createMessage" class="message"></p>
+            </section>
+
+            <section class="neumorph-panel widget-card teacher-only">
+              <div class="section-title compact-title">
+                <div>
+                  <p class="eyebrow">Контроль качества</p>
+                  <h3>Модерация по вашим дисциплинам</h3>
+                </div>
+                <button id="loadPendingBtn" class="soft-button compact" type="button">Обновить очередь</button>
+              </div>
+              <div id="pendingList" class="list empty-state">Только преподаватель может модерировать тесты.</div>
+            </section>
+
+            <section class="neumorph-panel widget-card student-only">
+              <div class="section-title compact-title">
+                <div>
+                  <p class="eyebrow">Аналитика</p>
+                  <h3>Статистика и достижения</h3>
+                </div>
+              </div>
+              <div id="statsBox" class="stack empty-state">После прохождения тестов здесь появится статистика.</div>
+              <div id="achievementsList" class="list"></div>
+            </section>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/js/app.js" type="module"></script>
+</body>
+</html>

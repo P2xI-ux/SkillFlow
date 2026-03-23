@@ -1,10 +1,18 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Table, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.enums import AttemptStatus, QuestionType, Role, TestStatus
+
+
+teacher_subjects = Table(
+    "teacher_subjects",
+    Base.metadata,
+    Column("teacher_id", ForeignKey("users.id"), primary_key=True),
+    Column("subject_id", ForeignKey("subjects.id"), primary_key=True),
+)
 
 
 class User(Base):
@@ -28,6 +36,7 @@ class User(Base):
     attempts = relationship("TestAttempt", back_populates="student")
     ratings = relationship("Rating", back_populates="student")
     earned_achievements = relationship("UserAchievement", back_populates="student")
+    teaching_subjects = relationship("Subject", secondary=teacher_subjects, back_populates="teachers")
 
 
 class Subject(Base):
@@ -39,6 +48,7 @@ class Subject(Base):
 
     tests = relationship("Test", back_populates="subject")
     ratings = relationship("Rating", back_populates="subject")
+    teachers = relationship("User", secondary=teacher_subjects, back_populates="teaching_subjects")
 
 
 class Test(Base):
