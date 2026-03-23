@@ -4,9 +4,15 @@ const state = {
   subjects: [],
   selectedTest: null,
   myTests: [],
-  currentPage: 'home',
+  currentPage: document.body.dataset.page || 'home',
   currentTheme: localStorage.getItem('skillflow_theme') || 'light',
   currentRole: 'STUDENT',
+};
+
+const pageUrls = {
+  home: '/',
+  auth: '/auth',
+  dashboard: '/dashboard',
 };
 
 const roleCapabilities = {
@@ -20,6 +26,41 @@ const roleCapabilities = {
     { title: 'Управление контентом', text: 'Следите за качеством вопросов и соответствием учебной программе.' },
     { title: 'Контроль активности', text: 'Используйте каталог и рейтинг как обзор вовлечённости студентов.' },
   ],
+  ADMIN: [
+    { title: 'Следить за платформой', text: 'Контролируйте метрики использования и ключевые сценарии пользователей.' },
+    { title: 'Поддерживать стабильность', text: 'Управляйте инфраструктурой и общими настройками системы.' },
+    { title: 'Развивать продукт', text: 'Используйте аналитику для улучшения пользовательского опыта.' },
+  ],
+};
+
+const dashboardContent = {
+  STUDENT: {
+    title: 'Ваше пространство для учёбы и практики',
+    lead: 'Проходите тесты, отслеживайте результаты, открывайте достижения и создавайте собственные материалы.',
+    cards: [
+      { title: 'Что сделать сейчас', text: 'Откройте тест из каталога и проверьте, какие темы стоит повторить в первую очередь.' },
+      { title: 'Как расти быстрее', text: 'Сравнивайте последние попытки, следите за рейтингом и закрепляйте сильные результаты.' },
+      { title: 'Следующий шаг', text: 'Создайте свой тест и отправьте его на модерацию, чтобы делиться знаниями с другими.' },
+    ],
+  },
+  TEACHER: {
+    title: 'Кабинет преподавателя и модератора',
+    lead: 'Контролируйте качество контента, проверяйте новые тесты и поддерживайте учебный процесс без лишней рутины.',
+    cards: [
+      { title: 'Главный фокус', text: 'Проверьте очередь модерации и опубликуйте материалы, которые готовы к использованию.' },
+      { title: 'Польза для студентов', text: 'Поддерживайте понятные и корректные задания, чтобы обучение оставалось прозрачным и полезным.' },
+      { title: 'Рабочий ритм', text: 'Используйте каталог и активность пользователей как быстрый обзор вовлечённости по предметам.' },
+    ],
+  },
+  ADMIN: {
+    title: 'Панель управления платформой',
+    lead: 'Держите под контролем состояние сервиса, роли пользователей и ключевые продуктовые показатели.',
+    cards: [
+      { title: 'Операционный обзор', text: 'Отслеживайте стабильность сервиса и актуальность пользовательских сценариев.' },
+      { title: 'Управление доступом', text: 'Следите за ролями и корректностью настроек для разных сегментов аудитории.' },
+      { title: 'Развитие продукта', text: 'Используйте сигналы активности и рейтинга для улучшения платформы.' },
+    ],
+  },
 };
 
 const api = async (path, options = {}) => {
@@ -32,45 +73,44 @@ const api = async (path, options = {}) => {
 };
 
 const el = (id) => document.getElementById(id);
-const query = (selector) => document.querySelector(selector);
 const queryAll = (selector) => [...document.querySelectorAll(selector)];
+const hasElement = (id) => Boolean(el(id));
 
 async function bootstrap() {
   applyTheme(state.currentTheme);
-  bindNavigation();
   bindThemeToggle();
   bindTabs();
   bindRoleSwitch();
   bindForms();
   updateRoleUI();
-  await loadSubjects();
+  updateAuthControls();
+
   await loadPublicData();
+
+  if (state.currentPage === 'dashboard') {
+    if (!state.token) {
+      window.location.href = pageUrls.auth;
+      return;
+    }
+    await loadSubjects();
+  }
+
   if (state.token) {
     try {
       await loadProfile();
       await loadPrivateData();
-      setPage('dashboard');
+      if (state.currentPage === 'auth') {
+        window.location.href = pageUrls.dashboard;
+        return;
+      }
     } catch {
-      logout();
+      logout({ redirect: false });
     }
-  } else {
-    setPage('home');
   }
 }
 
-function bindNavigation() {
-  queryAll('[data-route]').forEach((button) => {
-    button.addEventListener('click', () => setPage(button.dataset.route));
-  });
-}
-
-function setPage(page) {
-  state.currentPage = page;
-  queryAll('.page').forEach((section) => section.classList.toggle('active', section.dataset.page === page));
-  queryAll('.nav-link').forEach((button) => button.classList.toggle('active', button.dataset.route === page));
-}
-
 function bindThemeToggle() {
+  if (!hasElement('themeToggleBtn')) return;
   el('themeToggleBtn').addEventListener('click', () => {
     const nextTheme = state.currentTheme === 'light' ? 'dark' : 'light';
     applyTheme(nextTheme);
@@ -84,18 +124,20 @@ function applyTheme(theme) {
 }
 
 function bindTabs() {
+  if (!queryAll('.tab').length) return;
   queryAll('.tab').forEach((button) => {
     button.addEventListener('click', () => {
       queryAll('.tab').forEach((tab) => tab.classList.remove('active'));
       button.classList.add('active');
-      el('loginForm').classList.toggle('hidden', button.dataset.tab !== 'login');
-      el('registerForm').classList.toggle('hidden', button.dataset.tab !== 'register');
-      el('authMessage').textContent = '';
+      el('loginForm')?.classList.toggle('hidden', button.dataset.tab !== 'login');
+      el('registerForm')?.classList.toggle('hidden', button.dataset.tab !== 'register');
+      if (hasElement('authMessage')) el('authMessage').textContent = '';
     });
   });
 }
 
 function bindRoleSwitch() {
+  if (!hasElement('roleSwitch')) return;
   queryAll('#roleSwitch .role-pill').forEach((button) => {
     button.addEventListener('click', () => {
       state.currentRole = button.dataset.role;
@@ -107,24 +149,37 @@ function bindRoleSwitch() {
 
 function updateRoleUI() {
   const isStudent = state.currentRole === 'STUDENT';
-  el('registerRole').value = state.currentRole;
-  el('studentFields').classList.toggle('hidden', !isStudent);
-  el('teacherFields').classList.toggle('hidden', isStudent);
-  el('loginRoleHint').innerHTML = isStudent
-    ? '<strong>Студент:</strong> вход в каталог тестов, рейтинг и личную статистику.'
-    : '<strong>Преподаватель:</strong> доступ к модерации тестов и контролю публикаций.';
+  if (hasElement('registerRole')) el('registerRole').value = state.currentRole;
+  el('studentFields')?.classList.toggle('hidden', !isStudent);
+  el('teacherFields')?.classList.toggle('hidden', isStudent);
+  if (hasElement('loginRoleHint')) {
+    el('loginRoleHint').innerHTML = isStudent
+      ? '<strong>Студент:</strong> вход в каталог тестов, рейтинг и личную статистику.'
+      : '<strong>Преподаватель:</strong> доступ к модерации тестов и контролю публикаций.';
+  }
 }
 
 function bindForms() {
-  el('loginForm').addEventListener('submit', login);
-  el('registerForm').addEventListener('submit', register);
-  el('createTestForm').addEventListener('submit', createTest);
-  el('refreshTestsBtn').addEventListener('click', loadPublicData);
-  el('loadPendingBtn').addEventListener('click', loadPendingTests);
-  el('logoutBtn').addEventListener('click', logout);
-  el('linkTelegramBtn').addEventListener('click', linkTelegram);
-  el('submitLatestTestBtn').addEventListener('click', submitLatestTest);
-  el('demoTeacherBtn').addEventListener('click', demoTeacherLogin);
+  el('loginForm')?.addEventListener('submit', login);
+  el('registerForm')?.addEventListener('submit', register);
+  el('createTestForm')?.addEventListener('submit', createTest);
+  el('refreshTestsBtn')?.addEventListener('click', loadPublicData);
+  el('loadPendingBtn')?.addEventListener('click', loadPendingTests);
+  el('logoutBtn')?.addEventListener('click', () => logout({ redirect: true }));
+  el('linkTelegramBtn')?.addEventListener('click', linkTelegram);
+  el('submitLatestTestBtn')?.addEventListener('click', submitLatestTest);
+  el('demoTeacherBtn')?.addEventListener('click', demoTeacherLogin);
+}
+
+function updateAuthControls() {
+  const loggedIn = Boolean(state.token);
+  queryAll('[data-auth-nav], [data-auth-cta]').forEach((link) => {
+    link.textContent = loggedIn ? 'Личный кабинет' : 'Войти';
+    link.setAttribute('href', loggedIn ? pageUrls.dashboard : pageUrls.auth);
+  });
+  if (hasElement('logoutBtn')) {
+    el('logoutBtn').classList.toggle('hidden', !loggedIn);
+  }
 }
 
 async function login(event) {
@@ -132,10 +187,11 @@ async function login(event) {
   const form = new FormData(event.target);
   try {
     const data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(Object.fromEntries(form)) });
-    setSession(data);
-    el('authMessage').textContent = 'Вход выполнен успешно.';
+    await setSession(data);
+    if (hasElement('authMessage')) el('authMessage').textContent = 'Вход выполнен успешно.';
+    window.location.href = pageUrls.dashboard;
   } catch (error) {
-    el('authMessage').textContent = error.message;
+    if (hasElement('authMessage')) el('authMessage').textContent = error.message;
   }
 }
 
@@ -148,10 +204,11 @@ async function register(event) {
   if (payload.role === 'STUDENT') payload.department = null;
   try {
     const data = await api('/api/auth/register', { method: 'POST', body: JSON.stringify(payload) });
-    setSession(data);
-    el('authMessage').textContent = 'Регистрация выполнена.';
+    await setSession(data);
+    if (hasElement('authMessage')) el('authMessage').textContent = 'Регистрация выполнена.';
+    window.location.href = pageUrls.dashboard;
   } catch (error) {
-    el('authMessage').textContent = error.message;
+    if (hasElement('authMessage')) el('authMessage').textContent = error.message;
   }
 }
 
@@ -174,63 +231,71 @@ async function demoTeacherLogin() {
       method: 'POST',
       body: JSON.stringify({ email: 'teacher@skillflow.local', password: 'teacher123' })
     });
-    setSession(data);
-    el('authMessage').textContent = 'Выполнен вход в демо-режиме преподавателя.';
+    await setSession(data);
+    window.location.href = pageUrls.dashboard;
   } catch (error) {
-    el('authMessage').textContent = error.message;
+    if (hasElement('authMessage')) {
+      el('authMessage').textContent = error.message;
+    } else {
+      alert(error.message);
+    }
   }
 }
 
-function setSession(data) {
+async function setSession(data) {
   state.token = data.access_token;
   localStorage.setItem('skillflow_token', state.token);
   state.currentUser = data.user;
   state.currentRole = data.user.role;
-  syncRoleSwitch();
+  updateRoleUI();
+  updateAuthControls();
   renderRoleCapabilities();
   toggleRoleWidgets();
-  loadProfile();
-  loadPrivateData();
-  setPage('dashboard');
+  renderDashboardSpotlight();
+  await Promise.all([loadProfile(), loadPrivateData()]);
 }
 
-function syncRoleSwitch() {
-  queryAll('#roleSwitch .role-pill').forEach((pill) => pill.classList.toggle('active', pill.dataset.role === state.currentRole));
-  updateRoleUI();
-}
-
-function logout() {
+function logout({ redirect = true } = {}) {
   state.token = '';
   state.currentUser = null;
   state.selectedTest = null;
   localStorage.removeItem('skillflow_token');
+  updateAuthControls();
   renderProfile();
   renderStats();
   renderRoleCapabilities();
+  renderDashboardSpotlight();
   toggleRoleWidgets();
-  el('testRunner').innerHTML = 'Выберите тест из каталога.';
-  el('achievementsList').innerHTML = '';
-  el('pendingList').innerHTML = 'Только преподаватель может модерировать тесты.';
+  if (hasElement('testRunner')) el('testRunner').innerHTML = 'Выберите тест из каталога.';
+  if (hasElement('achievementsList')) el('achievementsList').innerHTML = '';
+  if (hasElement('pendingList')) el('pendingList').innerHTML = 'Только преподаватель может модерировать тесты.';
   loadPublicData();
-  setPage('home');
+  if (redirect) window.location.href = pageUrls.home;
 }
 
 async function loadSubjects() {
+  if (!hasElement('subjectSelect')) return;
   state.subjects = await api('/api/subjects', { headers: {} });
   el('subjectSelect').innerHTML = state.subjects.map((subject) => `<option value="${subject.id}">${subject.name}</option>`).join('');
 }
 
 async function loadProfile() {
-  if (!state.token) return renderProfile();
+  if (!state.token) {
+    renderProfile();
+    return;
+  }
   state.currentUser = await api('/api/users/me');
   state.currentRole = state.currentUser.role;
-  syncRoleSwitch();
+  updateRoleUI();
+  updateAuthControls();
   renderProfile();
   renderRoleCapabilities();
+  renderDashboardSpotlight();
   toggleRoleWidgets();
 }
 
 function renderProfile() {
+  if (!hasElement('profileBox')) return;
   if (!state.currentUser) {
     el('profileBox').className = 'profile-grid empty-state';
     el('profileBox').innerHTML = 'Войдите, чтобы увидеть профиль.';
@@ -249,6 +314,7 @@ function renderProfile() {
 }
 
 function renderRoleCapabilities() {
+  if (!hasElement('roleCapabilities')) return;
   const box = el('roleCapabilities');
   if (!state.currentUser) {
     box.className = 'capability-list empty-state';
@@ -265,9 +331,33 @@ function renderRoleCapabilities() {
   `).join('');
 }
 
+function renderDashboardSpotlight() {
+  if (!hasElement('dashboardRoleSpotlight')) return;
+  const role = state.currentUser?.role || 'STUDENT';
+  const config = dashboardContent[role] || dashboardContent.STUDENT;
+  el('dashboardHeading').textContent = config.title;
+  el('dashboardLead').textContent = config.lead;
+  el('dashboardRoleSpotlight').innerHTML = `
+    <div class="section-title compact-title">
+      <div>
+        <p class="eyebrow">Сценарий роли</p>
+        <h3>${config.title}</h3>
+      </div>
+    </div>
+    <div class="spotlight-grid">
+      ${config.cards.map((card) => `
+        <div class="spotlight-card inset-panel">
+          <strong>${card.title}</strong>
+          <p>${card.text}</p>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 function toggleRoleWidgets() {
   const role = state.currentUser?.role;
-  queryAll('.student-only').forEach((item) => item.classList.toggle('hidden-by-role', role === 'TEACHER'));
+  queryAll('.student-only').forEach((item) => item.classList.toggle('hidden-by-role', role === 'TEACHER' || role === 'ADMIN'));
   queryAll('.teacher-only').forEach((item) => item.classList.toggle('hidden-by-role', role !== 'TEACHER'));
 }
 
@@ -278,6 +368,7 @@ async function loadPublicData() {
 }
 
 async function loadPrivateData() {
+  if (!state.token) return;
   await Promise.all([loadMyStats(), loadAchievements(), loadMyTests()]);
   if (state.currentUser?.role === 'TEACHER') await loadPendingTests();
 }
@@ -289,6 +380,7 @@ async function loadMyStats() {
 }
 
 function renderStats(stats) {
+  if (!hasElement('statsBox')) return;
   if (!stats) {
     el('statsBox').className = 'stack empty-state';
     el('statsBox').innerHTML = 'После прохождения тестов здесь появится статистика.';
@@ -307,6 +399,7 @@ function renderStats(stats) {
 }
 
 async function loadAchievements() {
+  if (!hasElement('achievementsList')) return;
   if (!state.token || state.currentUser?.role !== 'STUDENT') return (el('achievementsList').innerHTML = '');
   const items = await api('/api/achievements/me');
   el('achievementsList').innerHTML = items.length
@@ -315,6 +408,7 @@ async function loadAchievements() {
 }
 
 function renderTests(tests) {
+  if (!hasElement('testsList')) return;
   const list = el('testsList');
   if (!tests.length) {
     list.innerHTML = '<div class="empty-state">Опубликованных тестов пока нет.</div>';
@@ -325,7 +419,7 @@ function renderTests(tests) {
       <strong>${test.title}</strong>
       <p>${test.description || 'Без описания'}</p>
       <p>${test.subject_name} • сложность ${test.difficulty} • вопросов ${test.question_count}</p>
-      <button class="primary-button compact" data-open-test="${test.id}">Открыть</button>
+      <button class="primary-button compact" type="button" data-open-test="${test.id}">Открыть</button>
     </article>
   `).join('');
   list.querySelectorAll('[data-open-test]').forEach((button) => button.addEventListener('click', () => openTest(button.dataset.openTest)));
@@ -333,8 +427,11 @@ function renderTests(tests) {
 
 async function openTest(testId) {
   if (!state.token) {
-    setPage('auth');
-    el('testRunner').innerHTML = 'Сначала выполните вход.';
+    window.location.href = pageUrls.auth;
+    return;
+  }
+  if (state.currentPage !== 'dashboard') {
+    window.location.href = pageUrls.dashboard;
     return;
   }
   const test = await api(`/api/tests/${testId}`);
@@ -357,7 +454,6 @@ async function openTest(testId) {
     <div id="attemptResult" class="message"></div>
   `;
   el('attemptForm').addEventListener('submit', submitAttempt);
-  setPage('dashboard');
 }
 
 async function submitAttempt(event) {
@@ -420,6 +516,7 @@ async function submitLatestTest() {
 }
 
 async function loadPendingTests() {
+  if (!hasElement('pendingList')) return;
   if (!state.token || state.currentUser?.role !== 'TEACHER') {
     el('pendingList').innerHTML = 'Только преподаватель может модерировать тесты.';
     return;
@@ -431,8 +528,8 @@ async function loadPendingTests() {
         <strong>${item.title}</strong>
         <p>${item.author_name} • ${item.subject_name}</p>
         <div class="inline-actions">
-          <button class="primary-button compact" data-approve="${item.id}">Одобрить</button>
-          <button class="soft-button compact" data-reject="${item.id}">Отклонить</button>
+          <button class="primary-button compact" type="button" data-approve="${item.id}">Одобрить</button>
+          <button class="soft-button compact" type="button" data-reject="${item.id}">Отклонить</button>
         </div>
       </article>
     `).join('')
@@ -452,6 +549,7 @@ async function moderate(testId, action) {
 }
 
 function renderRatings(ratings) {
+  if (!hasElement('ratingsList')) return;
   el('ratingsList').innerHTML = ratings.length
     ? ratings.map((item) => `
       <div class="list-item">

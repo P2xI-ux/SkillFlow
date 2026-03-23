@@ -26,6 +26,16 @@ def root():
     return FileResponse(static_dir / "index.html")
 
 
+@app.get("/auth")
+def auth_page():
+    return FileResponse(static_dir / "auth.html")
+
+
+@app.get("/dashboard")
+def dashboard_page():
+    return FileResponse(static_dir / "dashboard.html")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
