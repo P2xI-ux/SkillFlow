@@ -429,3 +429,66 @@ textarea { resize: vertical; min-height: 140px; }
   display: block;
   margin-bottom: 8px;
 }
+
+
+.helper-text {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.multi-select {
+  min-height: 140px;
+}
+
+.constructor-shell {
+  gap: 18px;
+}
+
+.constructor-toolbar,
+.answer-option {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.helper-chip {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-weight: 700;
+}
+
+.builder-question,
+.answers-block {
+  display: grid;
+  gap: 16px;
+}
+
+.answer-option {
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--surface-strong);
+  box-shadow: inset 3px 3px 8px rgba(255,255,255,0.22), inset -4px -4px 10px rgba(0,0,0,0.06);
+}
+
+.answer-correct-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.answer-text-input {
+  flex: 1 1 240px;
+}
+
+@media (max-width: 640px) {
+  .constructor-toolbar,
+  .answer-option {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

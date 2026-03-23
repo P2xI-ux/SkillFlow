@@ -1,5 +1,8 @@
+from sqlalchemy import select
+
 from app.core.security import create_access_token, get_password_hash, verify_password
-from app.models.entities import User
+from app.models.entities import Subject, User
+from app.models.enums import Role
 from app.repositories.user_repository import UserRepository
 
 
@@ -10,6 +13,15 @@ class AuthService:
     def register(self, payload):
         if self.user_repository.get_by_email(payload.email):
             raise ValueError("Пользователь с таким email уже существует")
+        teaching_subjects = []
+        if payload.role == Role.TEACHER:
+            if not payload.subject_ids:
+                raise ValueError("Для преподавателя нужно выбрать хотя бы одну дисциплину")
+            teaching_subjects = list(
+                self.user_repository.db.scalars(select(Subject).where(Subject.id.in_(payload.subject_ids))).all()
+            )
+            if len(teaching_subjects) != len(set(payload.subject_ids)):
+                raise ValueError("Некоторые дисциплины не найдены")
         user = User(
             email=payload.email,
             password_hash=get_password_hash(payload.password),
@@ -19,6 +31,7 @@ class AuthService:
             study_group=payload.study_group,
             course=payload.course,
             department=payload.department,
+            teaching_subjects=teaching_subjects,
         )
         self.user_repository.save(user)
         token = create_access_token(str(user.id))
