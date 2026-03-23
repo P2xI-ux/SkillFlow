@@ -13,7 +13,7 @@
         <span class="brand-mark">SF</span>
         <span>
           <strong>SkillFlow</strong>
-          <small>Персональная зона управления обучением</small>
+          <small>Рабочая зона</small>
         </span>
       </a>
 
@@ -58,7 +58,7 @@
             <div>
               <p class="eyebrow">Центр активности</p>
               <h2 id="dashboardHeading">Рабочая зона</h2>
-              <p id="dashboardLead">Контент кабинета обновляется под вашу роль и помогает сразу перейти к приоритетным задачам.</p>
+              <p id="dashboardLead">Контент в личном кабинете ...</p>
             </div>
             <a class="soft-button" href="/">На главную</a>
           </div>
@@ -66,7 +66,7 @@
           <section id="dashboardRoleSpotlight" class="role-spotlight neumorph-panel"></section>
 
           <div class="widget-grid">
-            <section class="neumorph-panel widget-card">
+            <section class="neumorph-panel widget-card student-only">
               <div class="section-title compact-title">
                 <div>
                   <p class="eyebrow">Каталог</p>
@@ -89,41 +89,22 @@
             <section class="neumorph-panel widget-card student-only">
               <div class="section-title compact-title">
                 <div>
-                  <p class="eyebrow">Авторский контент</p>
+                  <p class="eyebrow">Конструктор</p>
                   <h3>Создать тест</h3>
                 </div>
               </div>
-              <form id="createTestForm" class="stack">
-                <input name="title" placeholder="Название теста" required />
-                <textarea name="description" placeholder="Описание"></textarea>
-                <div class="field-row">
+              <form id="createTestForm" class="stack constructor-shell">
+                <input name="title" id="testTitleInput" placeholder="Название теста" required />
+                <textarea name="description" id="testDescriptionInput" placeholder="Описание теста"></textarea>
+                <div class="field-group">
+                  <label for="subjectSelect">Дисциплина</label>
                   <select name="subject_id" id="subjectSelect" required></select>
-                  <input name="difficulty" type="number" min="1" max="5" value="3" required />
                 </div>
-                <textarea name="questions_json" rows="12" required>{
-  "questions": [
-    {
-      "text": "Что вернёт len('abc')?",
-      "points": 5,
-      "question_type": "SINGLE_CHOICE",
-      "options": [
-        {"text": "2", "is_correct": false},
-        {"text": "3", "is_correct": true},
-        {"text": "4", "is_correct": false}
-      ]
-    },
-    {
-      "text": "Какие типы коллекций есть в Python?",
-      "points": 5,
-      "question_type": "MULTIPLE_CHOICE",
-      "options": [
-        {"text": "list", "is_correct": true},
-        {"text": "tuple", "is_correct": true},
-        {"text": "switch", "is_correct": false}
-      ]
-    }
-  ]
-}</textarea>
+                <div class="constructor-toolbar">
+                  <button id="addQuestionBtn" class="soft-button" type="button">Добавить вопрос</button>
+                  <span id="constructorSummary" class="helper-chip">Вопросов: 0</span>
+                </div>
+                <div id="constructorQuestions" class="stack empty-state">Добавьте первый вопрос, чтобы собрать тест.</div>
                 <div class="inline-actions">
                   <button class="primary-button" type="submit">Сохранить черновик</button>
                   <button type="button" id="submitLatestTestBtn" class="soft-button">Отправить на модерацию</button>

@@ -41,7 +41,7 @@
         <article class="neumorph-panel auth-intro">
           <p class="eyebrow">Доступ к системе</p>
           <h1 class="page-title">Авторизация и регистрация по ролям</h1>
-          <p>Выберите роль, чтобы войти в систему или создать учётную запись с доступом к нужным инструментам и персональному контенту.</p>
+          <p>Выберите роль, чтобы войти в систему или создать учётную запись.</p>
           <div class="role-switch" id="roleSwitch">
             <button class="role-pill active" type="button" data-role="STUDENT">Студент</button>
             <button class="role-pill" type="button" data-role="TEACHER">Преподаватель</button>
@@ -49,16 +49,12 @@
           <div class="auth-benefits">
             <div class="inset-panel">
               <strong>Студентам</strong>
-              <p>Каталог тестов, достижения, рейтинг и персональная статистика доступны сразу после входа.</p>
+              <p>Доступ к тестам, статистике, достижениям и конструктору собственных тестов.</p>
             </div>
             <div class="inset-panel">
               <strong>Преподавателям</strong>
-              <p>Очередь модерации, проверка материалов и управление качеством контента — в одном кабинете.</p>
+              <p>Доступ только к модерации тестов по дисциплинам, которые вы ведёте.</p>
             </div>
-          </div>
-          <div class="support-card inset-panel">
-            <strong>Что изменится после входа?</strong>
-            <p>Кнопка «Войти» автоматически заменится на «Личный кабинет», а система перенаправит вас на персональную страницу роли.</p>
           </div>
         </article>
 
@@ -82,7 +78,6 @@
           </form>
 
           <form id="registerForm" class="stack auth-form hidden">
-            <input type="hidden" name="role" id="registerRole" value="STUDENT" />
             <div class="field-group">
               <label for="registerName">Имя</label>
               <input id="registerName" name="full_name" placeholder="Иван Петров" required />
@@ -98,7 +93,7 @@
               </div>
             </div>
             <div class="field-group">
-              <label for="registerFaculty">Факультет / кафедра</label>
+              <label for="registerFaculty">Факультет</label>
               <input id="registerFaculty" name="faculty" placeholder="Информационные технологии" />
             </div>
             <div id="studentFields" class="stack">
@@ -117,6 +112,11 @@
               <div class="field-group">
                 <label for="registerDepartment">Кафедра</label>
                 <input id="registerDepartment" name="department" placeholder="Кафедра ИТ" />
+              </div>
+              <div class="field-group">
+                <label for="teacherSubjectsSelect">Дисциплины</label>
+                <select id="teacherSubjectsSelect" name="subject_ids" class="multi-select" multiple></select>
+                <small class="helper-text">Выберите одну или несколько дисциплин, которые вы ведёте.</small>
               </div>
             </div>
             <button class="primary-button" type="submit">Создать аккаунт</button>

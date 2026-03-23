@@ -111,7 +111,10 @@ def list_tests(
 def list_pending_tests(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role != Role.TEACHER:
         raise HTTPException(status_code=403, detail="Только преподаватель видит очередь модерации")
-    return [serialize_test_list_item(item) for item in TestRepository(db).get_pending()]
+    subject_ids = [subject.id for subject in current_user.teaching_subjects]
+    if not subject_ids:
+        return []
+    return [serialize_test_list_item(item) for item in TestRepository(db).get_pending(subject_ids)]
 
 
 @router.get("/tests/{test_id}", response_model=TestDetail)
