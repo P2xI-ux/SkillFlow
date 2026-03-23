@@ -190,8 +190,6 @@ html[data-theme='dark'] .icon-sun { display: none; }
 html[data-theme='dark'] .icon-moon { display: block; }
 
 main { margin-top: 28px; }
-.page { display: none; }
-.page.active { display: block; }
 
 .hero-grid,
 .overview-grid,
@@ -385,4 +383,49 @@ textarea { resize: vertical; min-height: 140px; }
   .hero-stats,
   .section-title,
   .inline-actions { flex-direction: column; }
+}
+
+
+.page-title {
+  max-width: 14ch;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.journey-grid,
+.audience-grid,
+.spotlight-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.journey-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.audience-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 20px;
+}
+
+.journey-step,
+.audience-card,
+.role-spotlight,
+.spotlight-card,
+.support-card {
+  padding: 22px;
+}
+
+.role-spotlight {
+  margin-bottom: 22px;
+}
+
+.spotlight-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.audience-card h3,
+.spotlight-card strong,
+.journey-step strong {
+  display: block;
+  margin-bottom: 8px;
 }
