@@ -20,11 +20,9 @@
       <nav class="topbar-nav">
         <a class="nav-link active" href="/">Главная</a>
         <a class="nav-link" href="/auth" data-auth-nav>Войти</a>
-        <a class="nav-link" href="/dashboard">Личный кабинет</a>
       </nav>
 
       <div class="topbar-actions">
-        <button id="demoTeacherBtn" class="soft-button compact" type="button">Демо-преподаватель</button>
         <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Переключить тему">
           <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>
@@ -45,7 +43,6 @@
           <p class="hero-copy">SkillFlow помогает сосредоточиться на личном прогрессе. Здесь легко увидеть сильные стороны, повторить сложные темы, пройти тестирование и получить прозрачную обратную связь по результатам.</p>
           <div class="hero-actions">
             <a class="primary-button" href="/auth" data-auth-cta>Войти</a>
-            <a class="soft-button" href="/dashboard">Открыть кабинет</a>
           </div>
           <div class="hero-stats">
             <div>
@@ -146,6 +143,16 @@
         </article>
       </section>
     </main>
+    <footer class="site-footer neumorph-panel">
+      <div>
+        <strong>SkillFlow</strong>
+        <p>Учебная платформа для тестирования, аналитики и развития навыков.</p>
+      </div>
+      <div class="footer-links">
+        <a href="/">Главная</a>
+        <a href="/dashboard">Кабинет</a>
+      </div>
+    </footer>
   </div>
 
   <script src="/static/js/app.js" type="module"></script>
