@@ -170,7 +170,6 @@ function bindForms() {
   el('logoutBtn')?.addEventListener('click', () => logout({ redirect: true }));
   el('linkTelegramBtn')?.addEventListener('click', linkTelegram);
   el('submitLatestTestBtn')?.addEventListener('click', submitLatestTest);
-  el('demoTeacherBtn')?.addEventListener('click', demoTeacherLogin);
   el('addQuestionBtn')?.addEventListener('click', addQuestionBlock);
 }
 
@@ -179,6 +178,12 @@ function updateAuthControls() {
   queryAll('[data-auth-nav], [data-auth-cta]').forEach((link) => {
     link.textContent = loggedIn ? 'Личный кабинет' : 'Войти';
     link.setAttribute('href', loggedIn ? pageUrls.dashboard : pageUrls.auth);
+  });
+  queryAll('[data-auth-nav]').forEach((link) => {
+    const shouldBeActive =
+      (loggedIn && state.currentPage === 'dashboard') ||
+      (!loggedIn && state.currentPage === 'auth');
+    link.classList.toggle('active', shouldBeActive);
   });
   if (hasElement('logoutBtn')) {
     el('logoutBtn').classList.toggle('hidden', !loggedIn);
@@ -219,40 +224,6 @@ async function register(event) {
     window.location.href = pageUrls.dashboard;
   } catch (error) {
     if (hasElement('authMessage')) el('authMessage').textContent = error.message;
-  }
-}
-
-async function demoTeacherLogin() {
-  await ensureSubjectsLoaded();
-  const fallbackSubjectIds = state.subjects.slice(0, 2).map((subject) => subject.id);
-  try {
-    await api('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'teacher@skillflow.local',
-        password: 'teacher123',
-        full_name: 'Demo Teacher',
-        role: 'TEACHER',
-        faculty: 'Информатика',
-        department: 'Кафедра ИТ',
-        subject_ids: fallbackSubjectIds,
-      })
-    }).catch(() => null);
-  } catch {}
-
-  try {
-    const data = await api('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email: 'teacher@skillflow.local', password: 'teacher123' })
-    });
-    await setSession(data);
-    window.location.href = pageUrls.dashboard;
-  } catch (error) {
-    if (hasElement('authMessage')) {
-      el('authMessage').textContent = error.message;
-    } else {
-      alert(error.message);
-    }
   }
 }
 

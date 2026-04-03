@@ -54,7 +54,11 @@ a { color: inherit; text-decoration: none; }
 .page-shell {
   width: min(1380px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 24px 0 40px;
+  padding: 24px 0 32px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  gap: 22px;
 }
 
 .neumorph-panel,
@@ -70,8 +74,8 @@ textarea,
 .badge {
   border: 1px solid transparent;
   border-radius: 28px;
-  background: var(--surface);
-  box-shadow: 10px 10px 24px var(--shadow-dark), -10px -10px 24px var(--shadow-light);
+  background: linear-gradient(160deg, var(--surface-strong), var(--surface));
+  box-shadow: 8px 8px 20px var(--shadow-dark), -8px -8px 20px var(--shadow-light);
 }
 
 .inset-panel {
@@ -89,6 +93,7 @@ textarea,
   position: sticky;
   top: 16px;
   z-index: 10;
+  backdrop-filter: blur(6px);
 }
 
 .brand {
@@ -158,10 +163,14 @@ button:active {
 .primary-button {
   background: linear-gradient(135deg, var(--primary), var(--primary-strong));
   color: #f7fff9;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 2px 2px 8px rgba(16, 48, 33, 0.18);
 }
 .soft-button {
-  background: var(--surface);
+  background: var(--surface-strong);
   color: var(--primary-strong);
+  border: 1px solid var(--line);
+  box-shadow: none;
 }
 .compact { padding: 10px 14px; border-radius: 20px; }
 .badge {
@@ -189,7 +198,10 @@ button:active {
 html[data-theme='dark'] .icon-sun { display: none; }
 html[data-theme='dark'] .icon-moon { display: block; }
 
-main { margin-top: 28px; }
+main {
+  margin-top: 12px;
+  flex: 1;
+}
 
 .hero-grid,
 .overview-grid,
@@ -279,7 +291,8 @@ p { color: var(--muted); line-height: 1.55; }
 .list-item,
 .capability-item {
   background: var(--surface-strong);
-  box-shadow: inset 3px 3px 8px rgba(255,255,255,0.25), inset -4px -4px 10px rgba(0,0,0,0.05);
+  border: 1px solid var(--line);
+  box-shadow: inset 2px 2px 6px rgba(255,255,255,0.22), inset -3px -3px 8px rgba(0,0,0,0.04);
 }
 .feature-item {
   display: grid;
@@ -330,6 +343,28 @@ textarea { resize: vertical; min-height: 140px; }
   box-shadow: inset 3px 3px 8px rgba(255,255,255,0.22), inset -4px -4px 10px rgba(0,0,0,0.06);
 }
 .role-actions-panel { padding: 20px; margin-top: 20px; }
+.site-footer {
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+.site-footer p {
+  margin: 6px 0 0;
+  font-size: 0.94rem;
+}
+.footer-links {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface-strong);
+}
 .dashboard-banner {
   display: flex;
   justify-content: space-between;
@@ -364,7 +399,8 @@ textarea { resize: vertical; min-height: 140px; }
   .topbar,
   .topbar-nav,
   .topbar-actions,
-  .dashboard-banner { flex-direction: column; align-items: stretch; }
+  .dashboard-banner,
+  .site-footer { flex-direction: column; align-items: stretch; }
   h1 { max-width: none; }
 }
 
