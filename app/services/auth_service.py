@@ -1,6 +1,7 @@
 from sqlalchemy import select
 
 from app.core.security import create_access_token, get_password_hash, verify_password
+from app.core.university_catalog import validate_student_profile, validate_teacher_profile
 from app.models.entities import Subject, User
 from app.models.enums import Role
 from app.repositories.user_repository import UserRepository
@@ -15,6 +16,7 @@ class AuthService:
             raise ValueError("Пользователь с таким email уже существует")
         teaching_subjects = []
         if payload.role == Role.TEACHER:
+            validate_teacher_profile(payload.faculty, payload.department)
             if not payload.subject_ids:
                 raise ValueError("Для преподавателя нужно выбрать хотя бы одну дисциплину")
             teaching_subjects = list(
@@ -22,6 +24,8 @@ class AuthService:
             )
             if len(teaching_subjects) != len(set(payload.subject_ids)):
                 raise ValueError("Некоторые дисциплины не найдены")
+        if payload.role == Role.STUDENT:
+            validate_student_profile(payload.faculty, payload.program_code)
         user = User(
             email=payload.email,
             password_hash=get_password_hash(payload.password),
@@ -31,6 +35,7 @@ class AuthService:
             study_group=payload.study_group,
             course=payload.course,
             department=payload.department,
+            program_code=payload.program_code,
             teaching_subjects=teaching_subjects,
         )
         self.user_repository.save(user)

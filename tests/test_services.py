@@ -1,4 +1,5 @@
 from app.core.security import get_password_hash, verify_password
+from app.core.university_catalog import validate_student_profile, validate_teacher_profile
 from app.models.enums import TestStatus
 from app.services.event_bus import EventBus
 from app.services.rating_strategy import BonusStrategy, RatingStrategyFactory, StandardStrategy, TournamentStrategy
@@ -54,3 +55,25 @@ def test_password_hashing_supports_unicode_passwords():
     hashed_password = get_password_hash(password)
 
     assert verify_password(password, hashed_password)
+
+
+def test_university_catalog_validates_student_program_binding():
+    validate_student_profile("ИнПИТ", "09.03.01")
+
+    try:
+        validate_student_profile("ИнПИТ", "13.03.01")
+    except ValueError as exc:
+        assert "не относится" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+def test_university_catalog_validates_teacher_department_binding():
+    validate_teacher_profile("ИнЭН", "ТАЭ")
+
+    try:
+        validate_teacher_profile("ИнЭН", "АРХ")
+    except ValueError as exc:
+        assert "не относится" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError")
