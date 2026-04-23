@@ -27,6 +27,7 @@ class User(Base):
     study_group: Mapped[str | None] = mapped_column(String(120), nullable=True)
     course: Mapped[int | None] = mapped_column(Integer, nullable=True)
     department: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    program_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
     telegram_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     telegram_link_code: Mapped[str | None] = mapped_column(String(6), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

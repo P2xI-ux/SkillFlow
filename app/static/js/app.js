@@ -8,6 +8,7 @@ const state = {
   currentTheme: localStorage.getItem('skillflow_theme') || 'light',
   currentRole: 'STUDENT',
   constructorQuestionCount: 0,
+  universityCatalog: [],
 };
 
 const pageUrls = {
@@ -84,6 +85,7 @@ async function bootstrap() {
   updateAuthControls();
 
   await Promise.all([loadPublicData(), loadSubjects()]);
+  await loadUniversityCatalog();
 
   if (state.currentPage === 'dashboard' && !state.token) {
     window.location.href = pageUrls.auth;
@@ -214,6 +216,7 @@ async function register(event) {
     study_group: state.currentRole === 'STUDENT' ? el('registerGroup').value || null : null,
     course: state.currentRole === 'STUDENT' && el('registerCourse').value ? Number(el('registerCourse').value) : null,
     department: state.currentRole === 'TEACHER' ? el('registerDepartment').value || null : null,
+    program_code: state.currentRole === 'STUDENT' ? el('registerProgram').value || null : null,
     subject_ids: state.currentRole === 'TEACHER' ? getSelectedTeacherSubjectIds() : [],
   };
 
@@ -274,6 +277,38 @@ async function loadSubjects() {
   }
 }
 
+async function loadUniversityCatalog() {
+  if (!hasElement('registerFaculty')) return;
+  state.universityCatalog = await api('/api/university/catalog', { headers: {} });
+  el('registerFaculty').innerHTML = state.universityCatalog
+    .map((item) => `<option value="${item.short_name}">${item.short_name} — ${item.full_name}</option>`)
+    .join('');
+  el('registerFaculty').addEventListener('change', syncInstituteDependentFields);
+  syncInstituteDependentFields();
+}
+
+function syncInstituteDependentFields() {
+  if (!hasElement('registerFaculty')) return;
+  const instituteCode = el('registerFaculty').value;
+  const institute = state.universityCatalog.find((item) => item.short_name === instituteCode);
+  if (hasElement('registerProgram')) {
+    const programs = institute?.programs || [];
+    el('registerProgram').innerHTML = programs.length
+      ? programs.map((item) => `<option value="${item.code}">${item.code} — ${item.name}</option>`).join('')
+      : '<option value="">Нет программ</option>';
+  }
+  if (hasElement('registerDepartment')) {
+    const departments = institute?.departments || [];
+    el('registerDepartment').outerHTML = `
+      <select id="registerDepartment" name="department">
+        ${departments.length
+          ? departments.map((item) => `<option value="${item.code}">${item.code} — ${item.name}</option>`).join('')
+          : '<option value="">Нет кафедр</option>'}
+      </select>
+    `;
+  }
+}
+
 function getSelectedTeacherSubjectIds() {
   if (!hasElement('teacherSubjectsSelect')) return [];
   return [...el('teacherSubjectsSelect').selectedOptions].map((option) => Number(option.value));
@@ -311,8 +346,9 @@ function renderProfile() {
     ['Пользователь', user.full_name],
     ['Email', user.email],
     ['Роль', user.role === 'STUDENT' ? 'Студент' : 'Преподаватель'],
-    ['Факультет', user.faculty || '—'],
+    ['Институт', user.faculty || '—'],
     ['Группа / курс', user.role === 'STUDENT' ? `${user.study_group || '—'} / ${user.course || '—'}` : '—'],
+    ['Направление', user.program_code || '—'],
     ['Кафедра', user.department || '—'],
     ['Дисциплины', teachingSubjects],
     ['Telegram', user.telegram_id || 'не привязан'],
@@ -467,13 +503,31 @@ async function submitAttempt(event) {
     question_id: question.id,
     selected_option_ids: [...event.target.querySelectorAll(`[name="q_${question.id}"]:checked`)].map((input) => Number(input.value))
   }));
-  const result = await api(`/api/tests/${state.selectedTest.id}/attempt`, {
-    method: 'POST',
-    body: JSON.stringify({ answers })
-  });
-  el('attemptResult').textContent = `Результат: ${result.score}/${result.max_score} (${result.percentage}%). Рейтинг +${result.rating_delta}. Достижения: ${result.earned_achievements.join(', ') || 'нет новых'}.`;
-  await loadPrivateData();
-  await loadPublicData();
+  try {
+    const result = await api(`/api/tests/${state.selectedTest.id}/attempt`, {
+      method: 'POST',
+      body: JSON.stringify({ answers, allow_retake: false })
+    });
+    el('attemptResult').textContent = `Результат: ${result.score}/${result.max_score} (${result.percentage}%). Рейтинг ${result.rating_delta >= 0 ? '+' : ''}${result.rating_delta}. Достижения: ${result.earned_achievements.join(', ') || 'нет новых'}.`;
+    await loadPrivateData();
+    await loadPublicData();
+  } catch (error) {
+    if (error.message.includes('Повторная попытка')) {
+      const confirmed = confirm('Тест уже пройден. Повторить попытку? Предыдущий рейтинговый вклад будет заменён новым.');
+      if (!confirmed) {
+        return;
+      }
+      const result = await api(`/api/tests/${state.selectedTest.id}/attempt`, {
+        method: 'POST',
+        body: JSON.stringify({ answers, allow_retake: true })
+      });
+      el('attemptResult').textContent = `Повторная попытка сохранена: ${result.score}/${result.max_score}. Изменение рейтинга: ${result.rating_delta >= 0 ? '+' : ''}${result.rating_delta}.`;
+      await loadPrivateData();
+      await loadPublicData();
+      return;
+    }
+    el('attemptResult').textContent = error.message;
+  }
 }
 
 function addQuestionBlock() {
@@ -664,15 +718,44 @@ async function loadMyTests() {
     return;
   }
   state.myTests = await api('/api/tests?mine=true');
+  renderMyTests();
 }
 
 async function submitLatestTest() {
   if (!state.myTests?.length) return (el('createMessage').textContent = 'Сначала создайте тест.');
-  const draft = state.myTests.find((item) => item.status === 'DRAFT');
+  const selectedDraftId = hasElement('draftSelect') ? Number(el('draftSelect').value) : null;
+  const draft = state.myTests.find((item) => item.id === selectedDraftId) || state.myTests.find((item) => item.status === 'DRAFT');
   if (!draft) return (el('createMessage').textContent = 'У вас нет черновиков для отправки.');
   const test = await api(`/api/tests/${draft.id}/submit`, { method: 'POST' });
   el('createMessage').textContent = `Тест "${test.title}" отправлен на модерацию.`;
   await loadMyTests();
+}
+
+function renderMyTests() {
+  if (!hasElement('myTestsList')) return;
+  if (!state.myTests.length) {
+    el('myTestsList').className = 'list empty-state';
+    el('myTestsList').innerHTML = 'Созданные тесты появятся здесь.';
+    return;
+  }
+  const draftOptions = state.myTests
+    .filter((item) => item.status === 'DRAFT')
+    .map((item) => `<option value="${item.id}">${item.title}</option>`)
+    .join('');
+  el('myTestsList').className = 'list';
+  el('myTestsList').innerHTML = `
+    <div class="list-item">
+      <strong>Черновики для отправки</strong>
+      ${draftOptions ? `<select id="draftSelect">${draftOptions}</select>` : '<p>Нет черновиков</p>'}
+    </div>
+    ${state.myTests.map((item) => `
+      <article class="list-item">
+        <strong>${item.title}</strong>
+        <p>${item.subject_name}</p>
+        <p>Статус: ${item.status}</p>
+      </article>
+    `).join('')}
+  `;
 }
 
 async function loadPendingTests() {

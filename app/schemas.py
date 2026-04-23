@@ -21,6 +21,7 @@ class UserRegister(BaseModel):
     study_group: str | None = None
     course: int | None = None
     department: str | None = None
+    program_code: str | None = None
     subject_ids: list[int] = Field(default_factory=list)
 
 
@@ -38,6 +39,7 @@ class UserResponse(BaseModel):
     study_group: str | None = None
     course: int | None = None
     department: str | None = None
+    program_code: str | None = None
     telegram_id: str | None = None
     telegram_link_code: str | None = None
     teaching_subjects: list["SubjectResponse"] = Field(default_factory=list)
@@ -133,6 +135,7 @@ class AttemptAnswer(BaseModel):
 
 class AttemptSubmission(BaseModel):
     answers: list[AttemptAnswer]
+    allow_retake: bool = False
 
 
 class AttemptFeedbackItem(BaseModel):

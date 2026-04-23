@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.university_catalog import get_catalog_payload
 from app.dependencies import get_current_user, get_current_user_optional
 from app.models.entities import Subject, Test, User
 from app.models.enums import Role, TestStatus
@@ -74,6 +75,11 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 @router.get("/subjects", response_model=list[SubjectResponse])
 def list_subjects(db: Session = Depends(get_db)):
     return db.scalars(select(Subject).order_by(Subject.name.asc())).all()
+
+
+@router.get("/university/catalog")
+def university_catalog():
+    return get_catalog_payload()
 
 
 @router.get("/users/me", response_model=UserResponse)
@@ -152,7 +158,7 @@ def moderate_test(test_id: int, payload: ModerateTestRequest, db: Session = Depe
 @router.post("/tests/{test_id}/attempt", response_model=AttemptResult)
 def attempt_test(test_id: int, payload: AttemptSubmission, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
-        result = get_test_service(db).take_test(test_id, current_user, payload.answers)
+        result = get_test_service(db).take_test(test_id, current_user, payload.answers, payload.allow_retake)
         db.commit()
         return result
     except ValueError as exc:
