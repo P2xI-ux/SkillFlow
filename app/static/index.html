@@ -3,154 +3,80 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SkillFlow — платформа развития и тестирования</title>
+  <title>SkillFlow — главная</title>
   <link rel="stylesheet" href="/static/css/styles.css" />
 </head>
 <body data-page="home">
   <div class="page-shell">
     <header class="topbar neumorph-panel">
-      <a class="brand" href="/">
-        <span class="brand-mark">SF</span>
+      <a class="brand" href="/" aria-label="На главную страницу SkillFlow">
+        <svg class="brand-logo" viewBox="0 0 64 64" role="img" aria-hidden="true">
+          <rect x="6" y="6" width="52" height="52" rx="16"></rect>
+          <path d="M22 36c4 6 16 6 20-4"></path>
+          <path d="M22 24h20"></path>
+        </svg>
         <span>
           <strong>SkillFlow</strong>
-          <small>Персональный рост через практику и тестирование</small>
+          <small>Платформа тестирования и рейтинга</small>
         </span>
       </a>
 
       <nav class="topbar-nav">
         <a class="nav-link active" href="/">Главная</a>
-        <a class="nav-link" href="/auth" data-auth-nav>Войти</a>
       </nav>
 
       <div class="topbar-actions">
         <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Переключить тему">
-          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>
-          </svg>
-          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3c-.08.33-.12.67-.12 1.02A7 7 0 0 0 18 11c.35 0 .69-.04 1.02-.12Z"/>
-          </svg>
+          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>
+          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3c-.08.33-.12.67-.12 1.02A7 7 0 0 0 18 11c.35 0 .69-.04 1.02-.12Z"/></svg>
         </button>
-        <button id="logoutBtn" class="soft-button compact hidden" type="button">Выйти</button>
+        <a id="authButton" class="soft-button compact" href="/auth" data-auth-cta>Вход</a>
+        <div id="profileMenu" class="profile-menu hidden">
+          <button id="profileMenuToggle" class="profile-avatar" type="button" aria-label="Меню профиля">П</button>
+          <div id="profileMenuPanel" class="profile-menu-panel hidden">
+            <a href="/dashboard">Личный кабинет</a>
+            <a href="/">Главная</a>
+            <button id="logoutBtn" type="button">Выход</button>
+          </div>
+        </div>
       </div>
     </header>
 
     <main>
       <section class="hero-grid">
         <article class="hero-card neumorph-panel">
-          <p class="eyebrow">Платформа для уверенного прогресса</p>
-          <h1>Учитесь в понятном ритме: проходите тесты, отслеживайте результаты и развивайте свои навыки.</h1>
-          <p class="hero-copy">SkillFlow помогает сосредоточиться на личном прогрессе. Здесь легко увидеть сильные стороны, повторить сложные темы, пройти тестирование и получить прозрачную обратную связь по результатам.</p>
-          <div class="hero-actions">
-            <a class="primary-button" href="/auth" data-auth-cta>Войти</a>
-          </div>
-          <div class="hero-stats">
-            <div>
-              <strong>24/7</strong>
-              <span>доступ к материалам и результатам</span>
-            </div>
-            <div>
-              <strong>2 роли</strong>
-              <span>студент и преподаватель</span>
-            </div>
-            <div>
-              <strong>1 кабинет</strong>
-              <span>для всех основных действий без лишних переходов</span>
-            </div>
-          </div>
+          <p class="eyebrow">SkillFlow</p>
+          <h1>Функциональная платформа для тестов, рейтинга и прогресса.</h1>
+          <p class="hero-copy">На главной странице только ключевая информация: что это за система, как формируется рейтинг и как быстро перейти к работе.</p>
         </article>
 
-        <article class="showcase-card neumorph-panel inset-panel">
-          <div class="showcase-head">
-            <div>
-              <p class="eyebrow">Что получает пользователь</p>
-              <h2>Удобный маршрут от входа до результата</h2>
-            </div>
-            <span class="badge">SkillFlow</span>
-          </div>
-          <div class="feature-list">
-            <div class="feature-item">
-              <span class="feature-icon">🎯</span>
-              <div>
-                <strong>Фокус на результате</strong>
-                <p>Личный кабинет помогает быстро понять, что делать дальше: пройти тест, повторить тему или посмотреть динамику.</p>
-              </div>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">📚</span>
-              <div>
-                <strong>Понятное тестирование</strong>
-                <p>Все тесты и попытки собраны в одной системе, а структура интерфейса не отвлекает от учебной задачи.</p>
-              </div>
-            </div>
-            <div class="feature-item">
-              <span class="feature-icon">📈</span>
-              <div>
-                <strong>Прозрачный прогресс</strong>
-                <p>Рейтинг, статистика и достижения обновляются после попыток и показывают реальную динамику развития.</p>
-              </div>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section class="overview-grid">
-        <article class="neumorph-panel">
+        <article class="neumorph-panel rating-panel">
           <div class="section-title">
             <div>
-              <p class="eyebrow">Пользовательский путь</p>
-              <h2>Как работает SkillFlow</h2>
+              <p class="eyebrow">Рейтинг</p>
+              <h2>Таблица участников</h2>
             </div>
+            <button id="refreshTestsBtn" class="soft-button compact" type="button">Обновить</button>
           </div>
-          <div class="journey-grid">
-            <div class="journey-step inset-panel">
-              <strong>1. Авторизуйтесь</strong>
-              <p>После входа система переводит вас в личный кабинет и показывает контент, соответствующий вашей роли.</p>
-            </div>
-            <div class="journey-step inset-panel">
-              <strong>2. Работайте в кабинете</strong>
-              <p>Студент видит тесты, статистику и достижения, преподаватель — только инструменты модерации и свои дисциплины.</p>
-            </div>
-            <div class="journey-step inset-panel">
-              <strong>3. Отслеживайте прогресс</strong>
-              <p>Все изменения результатов, рейтинга и активности доступны без переключения между разными интерфейсами.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="neumorph-panel">
-          <div class="section-title">
-            <div>
-              <p class="eyebrow">Топ участников</p>
-              <h2>Рейтинг</h2>
-            </div>
-            <button id="refreshTestsBtn" class="soft-button compact" type="button">Обновить данные</button>
+          <div class="filters-grid inset-panel">
+            <label class="field-group">
+              <span>Предмет</span>
+              <select id="ratingSubjectFilter"><option value="">Все предметы</option></select>
+            </label>
+            <label class="field-group">
+              <span>Институт</span>
+              <select id="ratingFacultyFilter"><option value="">Все институты</option></select>
+            </label>
           </div>
           <div id="ratingsList" class="list rating-list"></div>
         </article>
       </section>
-
-      <section class="audience-grid">
-        <article class="neumorph-panel audience-card">
-          <p class="eyebrow">Студенту</p>
-          <h3>Проверяйте знания и двигайтесь дальше</h3>
-          <p>Каталог тестов, попытки, достижения и конструктор собственных тестов собраны в одном рабочем пространстве.</p>
-        </article>
-        <article class="neumorph-panel audience-card">
-          <p class="eyebrow">Преподавателю</p>
-          <h3>Модерируйте только свой контент</h3>
-          <p>Личный кабинет преподавателя показывает дисциплины и очередь тестов на проверку без лишних разделов, которые не нужны в работе.</p>
-        </article>
-      </section>
     </main>
+
     <footer class="site-footer neumorph-panel">
       <div>
         <strong>SkillFlow</strong>
-        <p>Учебная платформа для тестирования, аналитики и развития навыков.</p>
-      </div>
-      <div class="footer-links">
-        <a href="/">Главная</a>
-        <a href="/dashboard">Кабинет</a>
+        <p>Разработчик: SkillFlow Team · © 2026</p>
       </div>
     </footer>
   </div>
