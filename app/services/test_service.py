@@ -107,12 +107,15 @@ class TestService:
             self.test_repository.db.flush()
         return test
 
-    def take_test(self, test_id: int, current_user, answers: list):
+    def take_test(self, test_id: int, current_user, answers: list, allow_retake: bool = False):
         if current_user.role != Role.STUDENT:
             raise ValueError("Проходить тесты может только студент")
         test = self.test_repository.get_full(test_id)
         if not test or test.status != TestStatus.PUBLISHED:
             raise ValueError("Опубликованный тест не найден")
+        previous_attempt = self.attempt_repository.get_completed_by_student_for_test(current_user.id, test.id)
+        if previous_attempt and not allow_retake:
+            raise ValueError("Тест уже был пройден. Повторная попытка требует явного подтверждения.")
         answer_map = {item.question_id: sorted(item.selected_option_ids) for item in answers}
         max_score = sum(question.points for question in test.questions)
         attempt = TestAttempt(
@@ -154,6 +157,8 @@ class TestService:
         attempt.score = score
         strategy = RatingStrategyFactory.build(test.difficulty)
         rating_delta = strategy.calculate(score, test.difficulty) if current_user.role == Role.STUDENT else 0
+        if previous_attempt:
+            rating_delta -= previous_attempt.rating_delta
         attempt.rating_delta = rating_delta
         self.attempt_repository.db.flush()
         earned = self.event_bus.publish(
@@ -180,8 +185,6 @@ class TestService:
 
     def _handle_rating_update(self, event):
         payload = event.payload
-        if payload["rating_delta"] <= 0:
-            return []
         self.rating_repository.update_score(payload["student_id"], payload["subject_id"], payload["rating_delta"])
         return []
 
@@ -201,11 +204,20 @@ class TestService:
 
     def build_stats(self, current_user):
         attempts = self.attempt_repository.get_completed_by_student(current_user.id)
+        latest_by_test: dict[int, TestAttempt] = {}
+        for attempt in attempts:
+            if attempt.test_id not in latest_by_test:
+                latest_by_test[attempt.test_id] = attempt
+        unique_attempts = list(latest_by_test.values())
         ratings = self.rating_repository.get_leaderboard()
         my_ratings = [item for item in ratings if item.student_id == current_user.id]
         subject_breakdown = {item.subject.name: item.total_score for item in my_ratings}
         total_score = sum(item.total_score for item in my_ratings)
-        avg = round(sum((item.score / item.max_score) * 100 for item in attempts if item.max_score) / len(attempts), 2) if attempts else 0
+        avg = (
+            round(sum((item.score / item.max_score) * 100 for item in unique_attempts if item.max_score) / len(unique_attempts), 2)
+            if unique_attempts
+            else 0
+        )
         latest = [
             {
                 "test_title": item.test.title,
@@ -214,10 +226,10 @@ class TestService:
                 "max_score": item.max_score,
                 "completed_at": item.completed_at.isoformat() if item.completed_at else None,
             }
-            for item in attempts[:5]
+            for item in unique_attempts[:5]
         ]
         return {
-            "tests_completed": len(attempts),
+            "tests_completed": len(unique_attempts),
             "average_score_percent": avg,
             "rating_total": total_score,
             "subject_breakdown": subject_breakdown,
