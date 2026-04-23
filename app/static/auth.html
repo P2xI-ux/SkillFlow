@@ -9,29 +9,35 @@
 <body data-page="auth">
   <div class="page-shell">
     <header class="topbar neumorph-panel">
-      <a class="brand" href="/">
-        <span class="brand-mark">SF</span>
+      <a class="brand" href="/" aria-label="На главную страницу SkillFlow">
+        <svg class="brand-logo" viewBox="0 0 64 64" role="img" aria-hidden="true">
+          <rect x="6" y="6" width="52" height="52" rx="16"></rect>
+          <path d="M22 36c4 6 16 6 20-4"></path>
+          <path d="M22 24h20"></path>
+        </svg>
         <span>
           <strong>SkillFlow</strong>
-          <small>Безопасный вход в рабочее пространство</small>
+          <small>Авторизация и регистрация</small>
         </span>
       </a>
 
       <nav class="topbar-nav">
         <a class="nav-link" href="/">Главная</a>
-        <a class="nav-link active" href="/auth" data-auth-nav>Войти</a>
       </nav>
 
       <div class="topbar-actions">
         <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Переключить тему">
-          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/>
-          </svg>
-          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3c-.08.33-.12.67-.12 1.02A7 7 0 0 0 18 11c.35 0 .69-.04 1.02-.12Z"/>
-          </svg>
+          <svg class="icon icon-sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V2m0 20v-2m8-8h2M2 12h2m12.364 5.657 1.414 1.414M4.222 4.222l1.414 1.414m10.728-1.414-1.414 1.414M5.636 17.657l-1.414 1.414M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Z"/></svg>
+          <svg class="icon icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3c-.08.33-.12.67-.12 1.02A7 7 0 0 0 18 11c.35 0 .69-.04 1.02-.12Z"/></svg>
         </button>
-        <button id="logoutBtn" class="soft-button compact hidden" type="button">Выйти</button>
+        <div id="profileMenu" class="profile-menu hidden">
+          <button id="profileMenuToggle" class="profile-avatar" type="button" aria-label="Меню профиля">П</button>
+          <div id="profileMenuPanel" class="profile-menu-panel hidden">
+            <a href="/dashboard">Личный кабинет</a>
+            <a href="/">Главная</a>
+            <button id="logoutBtn" type="button">Выход</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -39,38 +45,28 @@
       <section class="auth-layout">
         <article class="neumorph-panel auth-intro">
           <p class="eyebrow">Доступ к системе</p>
-          <h1 class="page-title">Авторизация и регистрация по ролям</h1>
-          <p>Выберите роль, чтобы войти в систему или создать учётную запись.</p>
+          <h1 class="page-title">Авторизация / Регистрация</h1>
+          <p>Выберите роль: студент или преподаватель. После выбора доступны соответствующие поля.</p>
           <div class="role-switch" id="roleSwitch">
             <button class="role-pill active" type="button" data-role="STUDENT">Студент</button>
             <button class="role-pill" type="button" data-role="TEACHER">Преподаватель</button>
-          </div>
-          <div class="auth-benefits">
-            <div class="inset-panel">
-              <strong>Студентам</strong>
-              <p>Доступ к тестам, статистике, достижениям и конструктору собственных тестов.</p>
-            </div>
-            <div class="inset-panel">
-              <strong>Преподавателям</strong>
-              <p>Доступ только к модерации тестов по дисциплинам, которые вы ведёте.</p>
-            </div>
           </div>
         </article>
 
         <article class="neumorph-panel auth-card">
           <div class="tabs segmented-control">
-            <button class="tab active" type="button" data-tab="login">Вход</button>
+            <button class="tab active" type="button" data-tab="login">Авторизация</button>
             <button class="tab" type="button" data-tab="register">Регистрация</button>
           </div>
 
           <form id="loginForm" class="stack auth-form">
             <div class="field-group">
               <label for="loginEmail">Email</label>
-              <input id="loginEmail" name="email" type="email" placeholder="you@example.com" required />
+              <input id="loginEmail" name="email" type="email" required />
             </div>
             <div class="field-group">
               <label for="loginPassword">Пароль</label>
-              <input id="loginPassword" name="password" type="password" placeholder="••••••••" required />
+              <input id="loginPassword" name="password" type="password" required />
             </div>
             <div class="inset-panel auth-hint" id="loginRoleHint"></div>
             <button class="primary-button" type="submit">Войти</button>
@@ -79,64 +75,64 @@
           <form id="registerForm" class="stack auth-form hidden">
             <div class="field-group">
               <label for="registerName">Имя</label>
-              <input id="registerName" name="full_name" placeholder="Иван Петров" required />
+              <input id="registerName" name="full_name" required />
             </div>
             <div class="field-row">
               <div class="field-group">
                 <label for="registerEmail">Email</label>
-                <input id="registerEmail" name="email" type="email" placeholder="mail@example.com" required />
+                <input id="registerEmail" name="email" type="email" required />
               </div>
               <div class="field-group">
                 <label for="registerPassword">Пароль</label>
-                <input id="registerPassword" name="password" type="password" placeholder="Минимум 6 символов" required />
+                <input id="registerPassword" name="password" type="password" required />
               </div>
             </div>
             <div class="field-group">
               <label for="registerFaculty">Институт</label>
               <select id="registerFaculty" name="faculty"></select>
             </div>
+
             <div id="studentFields" class="stack">
+              <div class="field-group">
+                <span class="group-label">Направление (один выбор)</span>
+                <div id="registerProgramRadios" class="choice-list"></div>
+              </div>
               <div class="field-row">
-                <div class="field-group">
-                  <label for="registerProgram">Направление подготовки</label>
-                  <select id="registerProgram" name="program_code"></select>
-                </div>
                 <div class="field-group">
                   <label for="registerGroup">Группа</label>
                   <input id="registerGroup" name="study_group" placeholder="ПИ-21" />
                 </div>
                 <div class="field-group">
                   <label for="registerCourse">Курс</label>
-                  <input id="registerCourse" name="course" type="number" min="1" max="6" placeholder="2" />
+                  <input id="registerCourse" name="course" type="number" min="1" max="6" />
                 </div>
               </div>
             </div>
+
             <div id="teacherFields" class="stack hidden">
               <div class="field-group">
-                <label for="registerDepartment">Кафедра</label>
-                <input id="registerDepartment" name="department" placeholder="Кафедра ИТ" />
+                <span class="group-label">Кафедра (один выбор)</span>
+                <div id="registerDepartmentRadios" class="choice-list"></div>
               </div>
               <div class="field-group">
-                <label for="teacherSubjectsSelect">Дисциплины</label>
-                <select id="teacherSubjectsSelect" name="subject_ids" class="multi-select" multiple></select>
-                <small class="helper-text">Выберите одну или несколько дисциплин, которые вы ведёте.</small>
+                <span class="group-label">Дисциплины (множественный выбор)</span>
+                <div id="teacherSubjectsChecklist" class="choice-list"></div>
+                <div id="teacherSubjectsSelected" class="selected-values">Ничего не выбрано</div>
               </div>
             </div>
-            <button class="primary-button" type="submit">Создать аккаунт</button>
+
+            <button class="primary-button" type="submit">Зарегистрироваться</button>
           </form>
 
           <p id="authMessage" class="message"></p>
         </article>
       </section>
     </main>
+
     <footer class="site-footer neumorph-panel">
       <div>
         <strong>SkillFlow</strong>
-        <p>Учебная платформа для тестирования, аналитики и развития навыков.</p>
-      </div>
-      <div class="footer-links">
-        <a href="/">Главная</a>
-        <a href="/dashboard">Кабинет</a>
+        <p>Разработчик: SkillFlow Team · © 2026</p>
       </div>
     </footer>
   </div>
