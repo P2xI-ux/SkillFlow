@@ -42,8 +42,17 @@
     </header>
 
     <main>
+      <nav class="dashboard-screen-nav neumorph-panel">
+        <button class="tab active" type="button" data-dashboard-target="profile">Профиль</button>
+        <button class="tab student-only" type="button" data-dashboard-target="builder">Создание</button>
+        <button class="tab student-only" type="button" data-dashboard-target="runner">Прохождение</button>
+        <button class="tab student-only" type="button" data-dashboard-target="stats">Статистика</button>
+        <button class="tab teacher-only" type="button" data-dashboard-target="moderation">Модерация</button>
+        <button class="tab teacher-only" type="button" data-dashboard-target="teacherStats">Аналитика</button>
+        <button class="tab" type="button" data-dashboard-target="myTests">Мои тесты</button>
+      </nav>
       <section class="dashboard-grid">
-        <article class="neumorph-panel dashboard-sidebar">
+        <article class="neumorph-panel dashboard-sidebar dashboard-screen" data-dashboard-screen="profile">
           <div class="section-title compact-title">
             <div>
               <p class="eyebrow">Профиль</p>
@@ -58,7 +67,7 @@
           <div id="roleCapabilities" class="capability-list"></div>
 
           <div class="widget-grid">
-            <section class="neumorph-panel widget-card teacher-only">
+            <section class="neumorph-panel widget-card teacher-only dashboard-screen is-hidden" data-dashboard-screen="moderation">
               <div class="section-title compact-title">
                 <div><p class="eyebrow">Преподаватель</p><h3>Модерация тестов</h3></div>
                 <button id="loadPendingBtn" class="soft-button compact" type="button">Обновить</button>
@@ -66,7 +75,7 @@
               <div id="pendingList" class="list empty-state">Очередь модерации пуста.</div>
             </section>
 
-            <section class="neumorph-panel widget-card teacher-only">
+            <section class="neumorph-panel widget-card teacher-only dashboard-screen is-hidden" data-dashboard-screen="teacherStats">
               <div class="section-title compact-title">
                 <div><p class="eyebrow">Преподаватель</p><h3>Статистика по предмету</h3></div>
               </div>
@@ -77,7 +86,7 @@
               <div id="teacherStatsBox" class="list empty-state">Выберите предмет.</div>
             </section>
 
-            <section class="neumorph-panel widget-card student-only">
+            <section class="neumorph-panel widget-card student-only dashboard-screen is-hidden" data-dashboard-screen="builder">
               <div class="section-title compact-title"><div><p class="eyebrow">Студент</p><h3>Создание теста</h3></div></div>
               <form id="createTestForm" class="stack constructor-shell">
                 <input name="title" id="testTitleInput" placeholder="Название теста" required />
@@ -99,24 +108,24 @@
               <p id="createMessage" class="message"></p>
             </section>
 
-            <section class="neumorph-panel widget-card student-only">
+            <section class="neumorph-panel widget-card student-only hidden">
               <div class="section-title compact-title"><div><p class="eyebrow">Студент</p><h3>Рейтинг</h3></div></div>
               <div id="studentRatingsList" class="list"></div>
             </section>
 
-            <section class="neumorph-panel widget-card student-only">
+            <section class="neumorph-panel widget-card student-only dashboard-screen is-hidden" data-dashboard-screen="runner">
               <div class="section-title compact-title"><div><p class="eyebrow">Студент</p><h3>Прохождение теста и результат</h3></div></div>
               <div id="testsList" class="list"></div>
               <div id="testRunner" class="empty-state">Выберите тест для прохождения.</div>
             </section>
 
-            <section class="neumorph-panel widget-card student-only">
+            <section class="neumorph-panel widget-card student-only dashboard-screen is-hidden" data-dashboard-screen="stats">
               <div class="section-title compact-title"><div><p class="eyebrow">Студент</p><h3>Статистика</h3></div></div>
               <div id="statsBox" class="stack empty-state">После попыток здесь появится статистика.</div>
               <div id="achievementsList" class="list"></div>
             </section>
 
-            <section class="neumorph-panel widget-card">
+            <section class="neumorph-panel widget-card dashboard-screen is-hidden" data-dashboard-screen="myTests">
               <div class="section-title compact-title"><div><p class="eyebrow">Общее</p><h3>Мои тесты</h3></div></div>
               <div id="myTestsList" class="list empty-state">Созданные тесты появятся здесь.</div>
             </section>

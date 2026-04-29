@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+import json
 import random
 import string
 
@@ -38,6 +40,7 @@ from app.services.test_service import TestService
 
 router = APIRouter(prefix="/api")
 event_bus = EventBus()
+TELEGRAM_LINK_CODE_TTL_SECONDS = 20
 
 
 def get_test_service(db: Session):
@@ -202,16 +205,49 @@ def my_stats(db: Session = Depends(get_db), current_user: User = Depends(get_cur
 
 @router.post("/telegram/link-code", response_model=TelegramLinkResponse)
 def create_link_code(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    code = "".join(random.choices(string.digits, k=6))
-    current_user.telegram_link_code = code
+    now = datetime.utcnow()
+    if current_user.telegram_link_code and current_user.telegram_link_code_expires_at and current_user.telegram_link_code_expires_at > now:
+        return {
+            "code": current_user.telegram_link_code,
+            "expires_at": current_user.telegram_link_code_expires_at,
+            "ttl_seconds": max(0, int((current_user.telegram_link_code_expires_at - now).total_seconds())),
+        }
+
+    current_user.telegram_link_code = "".join(random.choices(string.digits, k=6))
+    current_user.telegram_link_code_created_at = now
+    current_user.telegram_link_code_expires_at = now + timedelta(seconds=TELEGRAM_LINK_CODE_TTL_SECONDS)
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
-    return {"code": code}
+    return {
+        "code": current_user.telegram_link_code,
+        "expires_at": current_user.telegram_link_code_expires_at,
+        "ttl_seconds": TELEGRAM_LINK_CODE_TTL_SECONDS,
+    }
 
 
 @router.post("/telegram/connect")
 def connect_telegram(payload: TelegramConnectRequest, db: Session = Depends(get_db)):
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_active_link_code(payload.code)
+    if not user:
+        expired_user = user_repo.get_by_link_code(payload.code)
+        if expired_user:
+            expired_user.telegram_link_code = None
+            expired_user.telegram_link_code_created_at = None
+            expired_user.telegram_link_code_expires_at = None
+            db.add(expired_user)
+            db.commit()
+            raise HTTPException(status_code=410, detail="Telegram link code expired")
+        raise HTTPException(status_code=404, detail="Telegram link code not found")
+    user.telegram_id = payload.telegram_id
+    user.telegram_link_code = None
+    user.telegram_link_code_created_at = None
+    user.telegram_link_code_expires_at = None
+    db.add(user)
+    db.commit()
+    return {"status": "connected", "email": user.email}
+
     user = UserRepository(db).get_by_link_code(payload.code)
     if not user:
         raise HTTPException(status_code=404, detail="Код привязки не найден")
@@ -246,18 +282,24 @@ def serialize_test_detail(test: Test):
         "subject_name": test.subject.name,
         "author_name": test.author.full_name,
         "moderation_comment": test.moderation_comment,
-        "questions": [
-            {
-                "id": question.id,
-                "text": question.text,
-                "points": question.points,
-                "question_type": question.question_type,
-                "sort_order": question.sort_order,
-                "options": [
-                    {"id": option.id, "text": option.text, "sort_order": option.sort_order}
-                    for option in sorted(question.answer_options, key=lambda item: item.sort_order)
-                ],
-            }
-            for question in sorted(test.questions, key=lambda item: item.sort_order)
+        "questions": [serialize_question(question) for question in sorted(test.questions, key=lambda item: item.sort_order)],
+    }
+
+
+def serialize_question(question):
+    payload = json.loads(question.payload) if question.payload else {}
+    matching_pairs = payload.get("pairs", [])
+    matching_options = [pair["right"] for pair in matching_pairs]
+    return {
+        "id": question.id,
+        "text": question.text,
+        "points": question.points,
+        "question_type": question.question_type,
+        "sort_order": question.sort_order,
+        "options": [
+            {"id": option.id, "text": option.text, "sort_order": option.sort_order}
+            for option in sorted(question.answer_options, key=lambda item: item.sort_order)
         ],
+        "matching_left": [pair["left"] for pair in matching_pairs],
+        "matching_options": random.sample(matching_options, len(matching_options)) if matching_options else [],
     }

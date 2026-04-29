@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models.enums import QuestionType, Role, TestStatus
 
@@ -62,11 +62,29 @@ class AnswerOptionCreate(BaseModel):
     is_correct: bool = False
 
 
+class MatchingPairCreate(BaseModel):
+    left: str
+    right: str
+
+
 class QuestionCreate(BaseModel):
     text: str
     points: int = Field(ge=1, le=25)
     question_type: QuestionType
-    options: list[AnswerOptionCreate] = Field(min_length=2, max_length=10)
+    options: list[AnswerOptionCreate] = Field(default_factory=list)
+    correct_answer: str | None = None
+    matching_pairs: list[MatchingPairCreate] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_question_payload(self):
+        if self.question_type in {QuestionType.SINGLE_CHOICE, QuestionType.MULTIPLE_CHOICE}:
+            if not 2 <= len(self.options) <= 10:
+                raise ValueError("Choice questions require 2-10 options")
+        if self.question_type == QuestionType.TEXT_ANSWER and not (self.correct_answer or "").strip():
+            raise ValueError("TEXT_ANSWER requires correct_answer")
+        if self.question_type == QuestionType.MATCHING and len(self.matching_pairs) < 2:
+            raise ValueError("MATCHING requires at least two pairs")
+        return self
 
 
 class TestCreate(BaseModel):
@@ -93,6 +111,8 @@ class QuestionResponse(BaseModel):
     question_type: QuestionType
     sort_order: int
     options: list[AnswerOptionResponse]
+    matching_left: list[str] = Field(default_factory=list)
+    matching_options: list[str] = Field(default_factory=list)
 
 
 class TestListItem(BaseModel):
@@ -130,7 +150,9 @@ class SubmitTestRequest(BaseModel):
 
 class AttemptAnswer(BaseModel):
     question_id: int
-    selected_option_ids: list[int]
+    selected_option_ids: list[int] = Field(default_factory=list)
+    text_answer: str | None = None
+    matching_answer: dict[str, str] | None = None
 
 
 class AttemptSubmission(BaseModel):
@@ -144,6 +166,8 @@ class AttemptFeedbackItem(BaseModel):
     points_earned: int
     selected_option_ids: list[int]
     correct_option_ids: list[int]
+    text_answer: str | None = None
+    matching_answer: dict[str, str] | None = None
 
 
 class AttemptResult(BaseModel):
@@ -180,6 +204,8 @@ class StatsResponse(BaseModel):
 
 class TelegramLinkResponse(BaseModel):
     code: str
+    expires_at: datetime
+    ttl_seconds: int
 
 
 class TelegramConnectRequest(BaseModel):

@@ -1,6 +1,7 @@
 import asyncio
 import os
 
+import httpx
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -63,6 +64,22 @@ async def stats(message: Message):
 
 
 async def link(message: Message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
+        await message.answer("Используйте /link <6-значный код>.")
+        return
+    try:
+        result = await adapter.connect_account(parts[1].strip(), str(message.from_user.id))
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 410:
+            await message.answer("Код привязки истёк. Получите новый код в веб-приложении.")
+            return
+        if exc.response.status_code == 404:
+            await message.answer("Код привязки не найден.")
+            return
+        raise
+    await message.answer(f"Аккаунт {result['email']} привязан к Telegram.")
+    return
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
         await message.answer("Используй /link <6-значный код>.")

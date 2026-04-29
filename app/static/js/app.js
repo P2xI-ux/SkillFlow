@@ -8,8 +8,10 @@ const state = {
   currentPage: document.body.dataset.page || 'home',
   currentTheme: localStorage.getItem('skillflow_theme') || 'light',
   currentRole: 'STUDENT',
+  currentScreen: 'profile',
   constructorQuestionCount: 0,
   universityCatalog: [],
+  telegramLinkTimer: null,
 };
 
 const pageUrls = { home: '/', auth: '/auth', dashboard: '/dashboard' };
@@ -36,6 +38,7 @@ async function bootstrap() {
   applyTheme(state.currentTheme);
   bindThemeToggle();
   bindTabs();
+  bindDashboardScreens();
   bindRoleSwitch();
   bindForms();
   bindProfileMenu();
@@ -85,6 +88,23 @@ function bindTabs() {
       el('registerForm')?.classList.toggle('hidden', button.dataset.tab !== 'register');
       if (hasElement('authMessage')) el('authMessage').textContent = '';
     });
+  });
+}
+
+function bindDashboardScreens() {
+  queryAll('[data-dashboard-target]').forEach((button) => {
+    button.addEventListener('click', () => showDashboardScreen(button.dataset.dashboardTarget));
+  });
+  if (hasElement('profileBox')) showDashboardScreen(state.currentScreen);
+}
+
+function showDashboardScreen(screen) {
+  state.currentScreen = screen || 'profile';
+  queryAll('[data-dashboard-screen]').forEach((item) => {
+    item.classList.toggle('is-hidden', item.dataset.dashboardScreen !== state.currentScreen);
+  });
+  queryAll('[data-dashboard-target]').forEach((button) => {
+    button.classList.toggle('active', button.dataset.dashboardTarget === state.currentScreen);
   });
 }
 
@@ -139,6 +159,8 @@ function bindForms() {
 function updateAuthControls() {
   const loggedIn = Boolean(state.token);
   el('authButton')?.classList.toggle('hidden', loggedIn || state.currentPage === 'auth');
+  el('homeActionButton')?.classList.toggle('hidden', loggedIn);
+  queryAll('.topbar-nav').forEach((nav) => nav.classList.toggle('hidden', loggedIn));
   el('profileMenu')?.classList.toggle('hidden', !loggedIn);
   if (loggedIn && hasElement('profileMenuToggle')) {
     el('profileMenuToggle').textContent = (state.currentUser?.full_name || 'П').trim().charAt(0).toUpperCase();
@@ -297,6 +319,22 @@ function renderProfile() {
     return;
   }
   const user = state.currentUser;
+  const teacherSubjects = user.teaching_subjects?.length ? user.teaching_subjects.map((s) => s.name).join(', ') : '—';
+  const profileRows = [
+    ['Пользователь', user.full_name],
+    ['Email', user.email],
+    ['Роль', user.role === 'STUDENT' ? 'Студент' : 'Преподаватель'],
+    ['Институт', user.faculty || '—'],
+  ];
+  if (user.role === 'STUDENT') {
+    profileRows.push(['Группа / курс', `${user.study_group || '—'} / ${user.course || '—'}`], ['Направление', user.program_code || '—']);
+  } else {
+    profileRows.push(['Кафедра', user.department || '—'], ['Дисциплины', teacherSubjects]);
+  }
+  profileRows.push(['Telegram', user.telegram_id || 'не привязан']);
+  el('profileBox').className = 'profile-grid';
+  el('profileBox').innerHTML = profileRows.map(([label, value]) => `<div><strong>${label}</strong><br>${value}</div>`).join('');
+  return;
   const teachingSubjects = user.teaching_subjects?.length ? user.teaching_subjects.map((s) => s.name).join(', ') : '—';
   el('profileBox').className = 'profile-grid';
   el('profileBox').innerHTML = [
@@ -337,6 +375,13 @@ function toggleRoleWidgets() {
   const role = state.currentUser?.role;
   queryAll('.student-only').forEach((item) => item.classList.toggle('hidden-by-role', role !== 'STUDENT'));
   queryAll('.teacher-only').forEach((item) => item.classList.toggle('hidden-by-role', role !== 'TEACHER'));
+  const studentScreens = new Set(['builder', 'runner', 'stats']);
+  const teacherScreens = new Set(['moderation', 'teacherStats']);
+  if ((role !== 'STUDENT' && studentScreens.has(state.currentScreen)) || (role !== 'TEACHER' && teacherScreens.has(state.currentScreen))) {
+    showDashboardScreen('profile');
+  } else {
+    showDashboardScreen(state.currentScreen);
+  }
 }
 
 async function loadPublicData() {
@@ -632,6 +677,188 @@ async function linkTelegram() {
   if (!state.token) return;
   const data = await api('/api/telegram/link-code', { method: 'POST' });
   alert(`Код для привязки Telegram: ${data.code}`);
+  await loadProfile();
+}
+
+function showToast(title, message, durationSeconds = 10) {
+  let host = el('toastHost');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'toastHost';
+    host.className = 'toast-host';
+    document.body.appendChild(host);
+  }
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.style.setProperty('--toast-duration', `${durationSeconds}s`);
+  toast.innerHTML = `<strong>${title}</strong><span>${message}</span>`;
+  host.appendChild(toast);
+  window.setTimeout(() => toast.remove(), durationSeconds * 1000);
+}
+
+function showAchievementToasts(achievements = []) {
+  achievements.forEach((achievement) => showToast('Новое достижение', achievement, 10));
+}
+
+async function openTest(testId) {
+  if (!state.token) return (window.location.href = pageUrls.auth);
+  if (state.currentUser?.role !== 'STUDENT') return;
+  const test = await api(`/api/tests/${testId}`);
+  state.selectedTest = test;
+  showDashboardScreen('runner');
+  const questionsHtml = test.questions.map((question) => `
+    <div class="question-block">
+      <strong>${question.text}</strong>
+      <p>${question.question_type} · ${question.points} баллов</p>
+      ${renderAttemptQuestion(question)}
+    </div>
+  `).join('');
+  el('testRunner').innerHTML = `<h3>${test.title}</h3><form id="attemptForm">${questionsHtml}<button class="primary-button" type="submit">Завершить тест</button></form><div id="attemptResult" class="message"></div>`;
+  el('attemptForm').addEventListener('submit', submitAttempt);
+}
+
+function renderAttemptQuestion(question) {
+  if (question.question_type === 'TEXT_ANSWER') {
+    return `<textarea name="q_text_${question.id}" placeholder="Введите ответ"></textarea>`;
+  }
+  if (question.question_type === 'MATCHING') {
+    return question.matching_left.map((left) => `
+      <label class="field-group">
+        <span>${left}</span>
+        <select name="q_match_${question.id}" data-left="${left}">
+          <option value="">Выберите пару</option>
+          ${question.matching_options.map((right) => `<option value="${right}">${right}</option>`).join('')}
+        </select>
+      </label>
+    `).join('');
+  }
+  return question.options.map((option) => `<label><input type="${question.question_type === 'SINGLE_CHOICE' ? 'radio' : 'checkbox'}" name="q_${question.id}" value="${option.id}"/> ${option.text}</label>`).join('<br>');
+}
+
+async function submitAttempt(event) {
+  event.preventDefault();
+  const answers = state.selectedTest.questions.map((question) => {
+    const answer = { question_id: question.id, selected_option_ids: [] };
+    if (question.question_type === 'TEXT_ANSWER') {
+      answer.text_answer = event.target.querySelector(`[name="q_text_${question.id}"]`)?.value || '';
+    } else if (question.question_type === 'MATCHING') {
+      answer.matching_answer = Object.fromEntries(
+        [...event.target.querySelectorAll(`[name="q_match_${question.id}"]`)].map((input) => [input.dataset.left, input.value])
+      );
+    } else {
+      answer.selected_option_ids = [...event.target.querySelectorAll(`[name="q_${question.id}"]:checked`)].map((input) => Number(input.value));
+    }
+    return answer;
+  });
+  try {
+    const result = await api(`/api/tests/${state.selectedTest.id}/attempt`, { method: 'POST', body: JSON.stringify({ answers, allow_retake: false }) });
+    el('attemptResult').textContent = `Результат: ${result.score}/${result.max_score} (${result.percentage}%).`;
+    showAchievementToasts(result.earned_achievements);
+    await loadPrivateData();
+    await loadPublicData();
+  } catch (error) {
+    el('attemptResult').textContent = error.message;
+  }
+}
+
+function addQuestionBlock() {
+  if (!hasElement('constructorQuestions')) return;
+  const container = el('constructorQuestions');
+  if (container.classList.contains('empty-state')) {
+    container.classList.remove('empty-state');
+    container.innerHTML = '';
+  }
+  state.constructorQuestionCount += 1;
+  const index = state.constructorQuestionCount;
+  const question = document.createElement('section');
+  question.className = 'builder-question inset-panel';
+  question.dataset.questionIndex = String(index);
+  question.innerHTML = `
+    <div class="section-title compact-title"><div><p class="eyebrow">Вопрос ${index}</p><h3>Параметры вопроса</h3></div><button class="soft-button compact" type="button" data-remove-question>Удалить</button></div>
+    <div class="field-row">
+      <div class="field-group"><label>Сложность</label><select name="points">${questionDifficultyOptions.map((i) => `<option value="${i.value}">${i.label}</option>`).join('')}</select></div>
+      <div class="field-group"><label>Тип вопроса</label><select name="question_type" data-question-type><option value="SINGLE_CHOICE">Одиночный выбор</option><option value="MULTIPLE_CHOICE">Множественный выбор</option><option value="TEXT_ANSWER">Текстовый ответ</option><option value="MATCHING">Соответствие</option></select></div>
+    </div>
+    <div class="field-group"><label>Текст вопроса</label><textarea name="question_text" required></textarea></div>
+    <div class="answers-block"></div>
+  `;
+  container.appendChild(question);
+  question.querySelector('[data-remove-question]').addEventListener('click', () => removeQuestionBlock(question));
+  question.querySelector('[data-question-type]').addEventListener('change', () => renderAnswerEditor(question));
+  renderAnswerEditor(question);
+  updateConstructorSummary();
+}
+
+function renderAnswerEditor(questionElement) {
+  const type = questionElement.querySelector('[data-question-type]').value;
+  const block = questionElement.querySelector('.answers-block');
+  if (type === 'TEXT_ANSWER') {
+    block.innerHTML = '<div class="field-group"><label>Правильный ответ</label><input class="text-answer-input" type="text" required /></div>';
+    return;
+  }
+  if (type === 'MATCHING') {
+    block.innerHTML = '<div class="section-title compact-title"><h3>Пары соответствия</h3><button class="soft-button compact" type="button" data-add-pair>Добавить пару</button></div><div class="matching-pairs stack"></div>';
+    block.querySelector('[data-add-pair]').addEventListener('click', () => addMatchingPair(questionElement));
+    addMatchingPair(questionElement);
+    addMatchingPair(questionElement);
+    return;
+  }
+  block.innerHTML = '<div class="section-title compact-title"><h3>Ответы</h3><button class="soft-button compact" type="button" data-add-option>Добавить вариант</button></div><div class="answer-options stack"></div>';
+  block.querySelector('[data-add-option]').addEventListener('click', () => addAnswerOption(questionElement));
+  addAnswerOption(questionElement);
+  addAnswerOption(questionElement);
+  syncAnswerInputTypes(questionElement);
+}
+
+function addMatchingPair(questionElement) {
+  const pairsList = questionElement.querySelector('.matching-pairs');
+  const row = document.createElement('div');
+  row.className = 'matching-pair';
+  row.innerHTML = '<input class="matching-left-input" type="text" placeholder="Левая часть" required/><input class="matching-right-input" type="text" placeholder="Правая часть" required/><button class="soft-button compact" type="button" data-remove-pair>Удалить</button>';
+  row.querySelector('[data-remove-pair]').addEventListener('click', () => row.remove());
+  pairsList.appendChild(row);
+}
+
+function buildConstructorPayload() {
+  const questions = queryAll('.builder-question').map((questionElement) => {
+    const type = questionElement.querySelector('[data-question-type]').value;
+    const question = {
+      text: questionElement.querySelector('[name="question_text"]').value.trim(),
+      points: Number(questionElement.querySelector('[name="points"]').value),
+      question_type: type,
+      options: [],
+    };
+    if (type === 'TEXT_ANSWER') {
+      question.correct_answer = questionElement.querySelector('.text-answer-input').value.trim();
+    } else if (type === 'MATCHING') {
+      question.matching_pairs = [...questionElement.querySelectorAll('.matching-pair')].map((row) => ({
+        left: row.querySelector('.matching-left-input').value.trim(),
+        right: row.querySelector('.matching-right-input').value.trim(),
+      }));
+    } else {
+      question.options = [...questionElement.querySelectorAll('.answer-option')].map((row) => ({
+        text: row.querySelector('.answer-text-input').value.trim(),
+        is_correct: row.querySelector('input').checked,
+      }));
+    }
+    return question;
+  });
+  if (!questions.length) throw new Error('Добавьте хотя бы один вопрос.');
+  return {
+    title: el('testTitleInput').value.trim(),
+    description: el('testDescriptionInput').value.trim(),
+    subject_id: Number(el('subjectSelect').value),
+    difficulty: 3,
+    questions,
+  };
+}
+
+async function linkTelegram() {
+  if (!state.token) return;
+  if (state.telegramLinkTimer) window.clearTimeout(state.telegramLinkTimer);
+  const data = await api('/api/telegram/link-code', { method: 'POST' });
+  showToast('Telegram link code', `${data.code} · действует ${data.ttl_seconds} сек.`, Math.max(1, data.ttl_seconds));
+  state.telegramLinkTimer = window.setTimeout(linkTelegram, Math.max(1, data.ttl_seconds) * 1000);
   await loadProfile();
 }
 
