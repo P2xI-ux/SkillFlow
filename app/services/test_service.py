@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 
 from app.models.entities import Test, TestAttempt, User, UserAnswer
 from app.models.enums import AttemptStatus, Role, TestStatus
@@ -9,9 +10,10 @@ from app.repositories.test_repository import TestRepository
 from app.repositories.user_repository import UserRepository
 from app.services.achievement_service import AchievementService
 from app.services.event_bus import EventBus
-from app.services.question_factory import QuestionFactory
-from app.services.rating_strategy import RatingStrategyFactory
+from app.services.question_visitors import ScoringVisitor
+from app.services.rating_strategy import RatingContext, RatingStrategyFactory
 from app.services.state_machine import TestStateMachine
+from app.services.test_builder import TestBuilder
 
 
 class TestService:
@@ -52,27 +54,7 @@ class TestService:
             raise ValueError("Автор теста не найден")
         if author.role != Role.STUDENT:
             raise ValueError("Создавать тесты может только студент")
-        test = Test(
-            title=payload.title,
-            description=payload.description,
-            subject_id=payload.subject_id,
-            difficulty=payload.difficulty,
-            author_id=author_id,
-            status=TestStatus.DRAFT,
-        )
-        self.test_repository.save(test)
-        for index, question_payload in enumerate(payload.questions, start=1):
-            factory = QuestionFactory.create(
-                question_payload.question_type,
-                {
-                    "text": question_payload.text,
-                    "points": question_payload.points,
-                    "options": [option.model_dump() for option in question_payload.options],
-                },
-            )
-            self.test_repository.save(factory.build_model(test.id, index))
-        self.test_repository.db.flush()
-        return self.test_repository.get_full(test.id)
+        return TestBuilder(self.test_repository).build(payload, author)
 
     def submit_for_moderation(self, test_id: int, current_user):
         test = self.test_repository.get_full(test_id)
@@ -116,7 +98,7 @@ class TestService:
         previous_attempt = self.attempt_repository.get_completed_by_student_for_test(current_user.id, test.id)
         if previous_attempt and not allow_retake:
             raise ValueError("Тест уже был пройден. Повторная попытка требует явного подтверждения.")
-        answer_map = {item.question_id: sorted(item.selected_option_ids) for item in answers}
+        answer_map = {item.question_id: item for item in answers}
         max_score = sum(question.points for question in test.questions)
         attempt = TestAttempt(
             test_id=test.id,
@@ -129,33 +111,31 @@ class TestService:
 
         score = 0
         feedback = []
+        scoring_visitor = ScoringVisitor()
         for question in sorted(test.questions, key=lambda value: value.sort_order):
-            selected_ids = answer_map.get(question.id, [])
-            correct_ids = sorted(option.id for option in question.answer_options if option.is_correct)
-            is_correct = selected_ids == correct_ids
-            points_earned = question.points if is_correct else 0
-            score += points_earned
+            result = scoring_visitor.score(question, answer_map.get(question.id))
+            score += result.points_earned
             self.attempt_repository.save(
                 UserAnswer(
                     attempt_id=attempt.id,
                     question_id=question.id,
-                    selected_option_ids=",".join(str(item) for item in selected_ids),
-                    is_correct=is_correct,
-                    points_earned=points_earned,
+                    selected_option_ids=",".join(str(item) for item in result.selected_option_ids),
+                    answer_payload=json.dumps(result.answer_payload, ensure_ascii=False) if result.answer_payload else None,
+                    is_correct=result.is_correct,
+                    points_earned=result.points_earned,
                 )
             )
-            feedback.append(
-                {
-                    "question_id": question.id,
-                    "is_correct": is_correct,
-                    "points_earned": points_earned,
-                    "selected_option_ids": selected_ids,
-                    "correct_option_ids": correct_ids,
-                }
-            )
+            feedback.append(result.as_feedback())
 
         attempt.score = score
-        strategy = RatingStrategyFactory.build(test.difficulty)
+        strategy = RatingStrategyFactory.build(
+            RatingContext(
+                score=score,
+                difficulty=test.difficulty,
+                is_first_attempt=previous_attempt is None,
+                is_tournament=False,
+            )
+        )
         rating_delta = strategy.calculate(score, test.difficulty) if current_user.role == Role.STUDENT else 0
         if previous_attempt:
             rating_delta -= previous_attempt.rating_delta

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Table, Text, UniqueConstraint
@@ -23,13 +25,15 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     full_name: Mapped[str] = mapped_column(String(120))
     role: Mapped[Role] = mapped_column(Enum(Role), default=Role.STUDENT)
-    faculty: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    study_group: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    course: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    department: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    program_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    telegram_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
-    telegram_link_code: Mapped[str | None] = mapped_column(String(6), nullable=True)
+    faculty: Mapped[str] = mapped_column(String(120), nullable=True)
+    study_group: Mapped[str] = mapped_column(String(120), nullable=True)
+    course: Mapped[int] = mapped_column(Integer, nullable=True)
+    department: Mapped[str] = mapped_column(String(120), nullable=True)
+    program_code: Mapped[str] = mapped_column(String(32), nullable=True)
+    telegram_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=True)
+    telegram_link_code: Mapped[str] = mapped_column(String(6), nullable=True)
+    telegram_link_code_created_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    telegram_link_code_expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     tests = relationship("Test", back_populates="author", foreign_keys="Test.author_id")
@@ -59,13 +63,16 @@ class Test(Base):
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     difficulty: Mapped[int] = mapped_column(Integer, default=1)
+    question_count: Mapped[int] = mapped_column(Integer, default=0)
+    max_score: Mapped[int] = mapped_column(Integer, default=0)
+    created_by_role: Mapped[str] = mapped_column(String(32), nullable=True)
     status: Mapped[TestStatus] = mapped_column(Enum(TestStatus), default=TestStatus.DRAFT)
-    moderation_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    moderation_comment: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    published_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    moderator_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    moderator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     author = relationship("User", back_populates="tests", foreign_keys=[author_id])
     moderator = relationship("User", back_populates="moderated_tests", foreign_keys=[moderator_id])
@@ -81,6 +88,7 @@ class Question(Base):
     text: Mapped[str] = mapped_column(Text)
     points: Mapped[int] = mapped_column(Integer, default=1)
     question_type: Mapped[QuestionType] = mapped_column(Enum(QuestionType))
+    payload: Mapped[str] = mapped_column(Text, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"))
 
@@ -106,7 +114,7 @@ class TestAttempt(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     score: Mapped[int] = mapped_column(Integer, default=0)
     max_score: Mapped[int] = mapped_column(Integer, default=0)
     rating_delta: Mapped[int] = mapped_column(Integer, default=0)
@@ -124,6 +132,7 @@ class UserAnswer(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     selected_option_ids: Mapped[str] = mapped_column(Text, default="")
+    answer_payload: Mapped[str] = mapped_column(Text, nullable=True)
     is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
     points_earned: Mapped[int] = mapped_column(Integer, default=0)
     attempt_id: Mapped[int] = mapped_column(ForeignKey("test_attempts.id"))
@@ -139,7 +148,7 @@ class Rating(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     total_score: Mapped[int] = mapped_column(Integer, default=0)
-    position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=True)
     last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))

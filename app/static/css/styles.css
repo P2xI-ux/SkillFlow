@@ -101,6 +101,7 @@ textarea,
 .field-row,
 .hero-grid,
 .dashboard-grid,
+.dashboard-screen-nav,
 .widget-grid,
 .inline-actions,
 .filters-grid,
@@ -109,6 +110,12 @@ textarea,
   gap: 12px;
 }
 .topbar-actions { align-items: center; }
+.dashboard-screen-nav {
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+}
+.dashboard-screen.is-hidden { display: none !important; }
 
 .nav-link,
 .primary-button,
@@ -241,6 +248,48 @@ textarea { min-height: 110px; resize: vertical; }
 .builder-question,.answers-block { display: grid; gap: 10px; }
 .answer-option { padding: 10px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
 .answer-text-input { flex: 1 1 220px; }
+.matching-pair { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: center; }
+
+.toast-host {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 50;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 36px));
+}
+.toast {
+  position: relative;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+  animation: toastFade var(--toast-duration, 10s) linear forwards;
+}
+.toast strong { display: block; margin-bottom: 4px; }
+.toast::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: 100%;
+  background: var(--primary-2);
+  animation: toastProgress var(--toast-duration, 10s) linear forwards;
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0; }
+}
+
+@keyframes toastFade {
+  0%, 82% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(8px); }
+}
 
 .site-footer {
   padding: 14px 18px;

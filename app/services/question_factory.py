@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import json
 
 from app.models.entities import AnswerOption, Question
 from app.models.enums import QuestionType
@@ -20,7 +21,7 @@ class SingleChoiceQuestion(BaseQuestion):
     def build_model(self, test_id: int, sort_order: int) -> Question:
         correct_count = sum(1 for option in self.options if option["is_correct"])
         if correct_count != 1:
-            raise ValueError("У вопроса SINGLE_CHOICE должен быть ровно один правильный ответ")
+            raise ValueError("SINGLE_CHOICE requires exactly one correct option")
         question = Question(
             test_id=test_id,
             text=self.text,
@@ -42,7 +43,7 @@ class MultipleChoiceQuestion(BaseQuestion):
     def build_model(self, test_id: int, sort_order: int) -> Question:
         correct_count = sum(1 for option in self.options if option["is_correct"])
         if correct_count < 1:
-            raise ValueError("У вопроса MULTIPLE_CHOICE должен быть хотя бы один правильный ответ")
+            raise ValueError("MULTIPLE_CHOICE requires at least one correct option")
         question = Question(
             test_id=test_id,
             text=self.text,
@@ -57,6 +58,43 @@ class MultipleChoiceQuestion(BaseQuestion):
         return question
 
 
+@dataclass
+class TextAnswerQuestion(BaseQuestion):
+    correct_answer: str
+
+    def build_model(self, test_id: int, sort_order: int) -> Question:
+        if not self.correct_answer.strip():
+            raise ValueError("TEXT_ANSWER requires a non-empty correct answer")
+        return Question(
+            test_id=test_id,
+            text=self.text,
+            points=self.points,
+            question_type=QuestionType.TEXT_ANSWER,
+            sort_order=sort_order,
+            payload=json.dumps({"correct_answer": self.correct_answer.strip()}, ensure_ascii=False),
+        )
+
+
+@dataclass
+class MatchingQuestion(BaseQuestion):
+    matching_pairs: list[dict]
+
+    def build_model(self, test_id: int, sort_order: int) -> Question:
+        if len(self.matching_pairs) < 2:
+            raise ValueError("MATCHING requires at least two pairs")
+        pairs = [{"left": str(pair["left"]).strip(), "right": str(pair["right"]).strip()} for pair in self.matching_pairs]
+        if any(not pair["left"] or not pair["right"] for pair in pairs):
+            raise ValueError("MATCHING pairs require non-empty left and right values")
+        return Question(
+            test_id=test_id,
+            text=self.text,
+            points=self.points,
+            question_type=QuestionType.MATCHING,
+            sort_order=sort_order,
+            payload=json.dumps({"pairs": pairs}, ensure_ascii=False),
+        )
+
+
 class QuestionFactory:
     @staticmethod
     def create(question_type: QuestionType, data: dict):
@@ -64,4 +102,8 @@ class QuestionFactory:
             return SingleChoiceQuestion(**data)
         if question_type == QuestionType.MULTIPLE_CHOICE:
             return MultipleChoiceQuestion(**data)
-        raise ValueError(f"Неизвестный тип вопроса: {question_type}")
+        if question_type == QuestionType.TEXT_ANSWER:
+            return TextAnswerQuestion(**data)
+        if question_type == QuestionType.MATCHING:
+            return MatchingQuestion(**data)
+        raise ValueError(f"Unknown question type: {question_type}")

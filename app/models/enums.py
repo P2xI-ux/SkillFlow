@@ -16,6 +16,8 @@ class TestStatus(str, Enum):
 class QuestionType(str, Enum):
     SINGLE_CHOICE = "SINGLE_CHOICE"
     MULTIPLE_CHOICE = "MULTIPLE_CHOICE"
+    TEXT_ANSWER = "TEXT_ANSWER"
+    MATCHING = "MATCHING"
 
 
 class AttemptStatus(str, Enum):
