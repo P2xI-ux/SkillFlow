@@ -5,9 +5,10 @@ class TelegramAdapter:
     def __init__(self, api_base_url: str):
         self.api_base_url = api_base_url.rstrip("/")
 
-    async def fetch_tests(self):
+    async def fetch_tests(self, token: str | None = None):
+        headers = {"Authorization": f"Bearer {token}"} if token else None
         async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(f"{self.api_base_url}/api/tests")
+            response = await client.get(f"{self.api_base_url}/api/tests", headers=headers)
             response.raise_for_status()
             return response.json()
 

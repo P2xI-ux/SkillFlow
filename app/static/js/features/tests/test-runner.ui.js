@@ -4,11 +4,12 @@ import { pageUrls } from '../../shared/constants.js';
 import { renderAttemptQuestion } from '../../shared/templates.js';
 import { fetchTestById } from './tests.api.js';
 
-export async function openTest(testId, submitAttemptHandler, showDashboardScreen) {
+export async function openTest(testId, submitAttemptHandler, showDashboardScreen, allowRetake = false) {
   if (!state.token) return (window.location.href = pageUrls.auth);
   if (state.currentUser?.role !== 'STUDENT') return;
   const test = await fetchTestById(testId);
   state.selectedTest = test;
+  state.selectedTestAllowRetake = allowRetake;
   showDashboardScreen('runner');
   const questionsHtml = test.questions
     .map(
@@ -38,12 +39,22 @@ export function renderTests(tests, openTestHandler) {
       <strong>${test.title}</strong>
       <p>${test.description || 'Без описания'}</p>
       <p>${test.subject_name} · сложность ${test.difficulty}</p>
-      <button class="primary-button compact" type="button" data-open-test="${test.id}">Открыть</button>
+      <button class="primary-button compact" type="button" data-open-test="${test.id}" data-test-attempted="${test.attempted ? '1' : '0'}">Открыть</button>
     </article>
   `,
     )
     .join('');
-  queryAll('[data-open-test]').forEach((button) => button.addEventListener('click', () => openTestHandler(button.dataset.openTest)));
+  queryAll('[data-open-test]').forEach((button) =>
+    button.addEventListener('click', () => {
+      const isAttempted = button.dataset.testAttempted === '1';
+      if (!isAttempted) {
+        openTestHandler(button.dataset.openTest, false);
+        return;
+      }
+      const shouldRetake = window.confirm('Вы уже проходили этот тест. Нажмите "ОК", чтобы начать заново, или "Отмена", чтобы вернуться.');
+      if (shouldRetake) openTestHandler(button.dataset.openTest, true);
+    }),
+  );
 }
 
 export function renderMyTests() {

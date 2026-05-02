@@ -1,1 +1,36 @@
-/* Reserved for feature/page-specific styles during incremental migration. */
+.achievements-title {
+  margin-top: 1rem;
+}
+
+.telegram-code-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 18, 35, 0.45);
+  z-index: 1000;
+}
+
+.telegram-code-modal-overlay.hidden {
+  display: none;
+}
+
+.telegram-code-modal {
+  width: min(420px, calc(100vw - 2rem));
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: var(--surface, #ffffff);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.telegram-code-modal h3 {
+  margin: 0.5rem 0;
+}
+
+.telegram-code-value {
+  margin: 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.2rem;
+}

@@ -19,7 +19,7 @@ export async function submitAttempt(event, { showAchievementToasts, loadPrivateD
   });
 
   try {
-    const result = await submitAttemptApi(state.selectedTest.id, { answers, allow_retake: false });
+    const result = await submitAttemptApi(state.selectedTest.id, { answers, allow_retake: Boolean(state.selectedTestAllowRetake) });
     el('attemptResult').textContent = `Результат: ${result.score}/${result.max_score} (${result.percentage}%).`;
     showAchievementToasts(result.earned_achievements);
     await loadPrivateData();

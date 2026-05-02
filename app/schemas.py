@@ -125,6 +125,7 @@ class TestListItem(BaseModel):
     author_name: str
     moderation_comment: str | None = None
     question_count: int
+    attempted: bool = False
 
 
 class TestDetail(BaseModel):

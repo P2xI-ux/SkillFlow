@@ -90,8 +90,9 @@ export function renderStats(stats) {
 }
 
 export function renderAchievements(items) {
-  if (!hasElement('achievementsList')) return;
-  el('achievementsList').innerHTML = items.length
+  const markup = items.length
     ? items.map((item) => `<div class="list-item"><strong>${item.name}</strong><p>${item.description}</p></div>`).join('')
     : '<div class="empty-state">Достижения ещё не открыты.</div>';
+  if (hasElement('achievementsList')) el('achievementsList').innerHTML = markup;
+  if (hasElement('profileAchievementsList')) el('profileAchievementsList').innerHTML = markup;
 }

@@ -16,7 +16,7 @@ import { submitAttempt } from '../features/tests/test-attempt.handlers.js';
 import { loadPendingTests } from '../features/moderation/moderation.ui.js';
 import { moderateTest } from '../features/moderation/moderation.api.js';
 import { requestTelegramLinkCode } from '../features/telegram/telegram.api.js';
-import { showAchievementToasts, showToast } from '../features/telegram/telegram.ui.js';
+import { showAchievementToasts, showTelegramCodeModal, showToast } from '../features/telegram/telegram.ui.js';
 
 function hooks() {
   return { renderProfile, renderRoleCapabilities, toggleRoleWidgets, loadPrivateData };
@@ -107,7 +107,9 @@ async function loadPublicData() {
   const [tests, ratings] = await Promise.all([fetchTests(), fetchRatings()]);
   state.ratings = ratings;
   renderRatings();
-  renderTests(tests, (testId) => openTest(testId, (event) => submitAttempt(event, { showAchievementToasts, loadPrivateData, loadPublicData }), showDashboardScreen));
+  renderTests(tests, (testId, allowRetake) =>
+    openTest(testId, (event) => submitAttempt(event, { showAchievementToasts, loadPrivateData, loadPublicData }), showDashboardScreen, allowRetake),
+  );
   renderStudentRatings();
   renderTeacherStatsFilters();
 }
@@ -170,7 +172,8 @@ async function linkTelegram() {
   if (!state.token) return;
   if (state.telegramLinkTimer) window.clearTimeout(state.telegramLinkTimer);
   const data = await requestTelegramLinkCode();
-  showToast('Telegram link code', `${data.code} · действует ${data.ttl_seconds} сек.`, Math.max(1, data.ttl_seconds));
+  showTelegramCodeModal(data.code, Math.max(1, data.ttl_seconds));
+  showToast('Telegram', 'Код отображён в отдельном окне.', 5);
   state.telegramLinkTimer = window.setTimeout(linkTelegram, Math.max(1, data.ttl_seconds) * 1000);
   await loadProfile();
 }

@@ -4,7 +4,7 @@ import os
 import httpx
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from app.core.config import settings
 from app.services.telegram_adapter import TelegramAdapter
@@ -28,8 +28,53 @@ async def start(message: Message):
 
 
 async def tests(message: Message):
-    items = await adapter.fetch_tests()
-    await message.answer(format_tests(items))
+    token_value = user_tokens.get(str(message.from_user.id))
+    items = await adapter.fetch_tests(token_value)
+    if not items:
+        await message.answer("Пока нет опубликованных тестов.")
+        return
+    lines = []
+    for item in items[:10]:
+        marker = " ✅" if item.get("attempted") else ""
+        lines.append(f"• #{item['id']} {item['title']} ({item['subject_name']}, сложность {item['difficulty']}){marker}")
+    await message.answer("\n".join(lines) + "\n\nОткрыть тест: /open <id>")
+
+
+async def open_test(message: Message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip().isdigit():
+        await message.answer("Используйте /open <id_теста>.")
+        return
+
+    test_id = int(parts[1].strip())
+    token_value = user_tokens.get(str(message.from_user.id))
+    items = await adapter.fetch_tests(token_value)
+    selected = next((item for item in items if item["id"] == test_id), None)
+    if not selected:
+        await message.answer("Тест не найден или недоступен.")
+        return
+
+    if selected.get("attempted"):
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="Начать", callback_data=f"retake:start:{test_id}")],
+                [InlineKeyboardButton(text="Отмена", callback_data=f"retake:cancel:{test_id}")],
+            ]
+        )
+        await message.answer("Вы уже проходили этот тест. Начать повторно?", reply_markup=keyboard)
+        return
+
+    await message.answer(f"Тест #{test_id} готов к прохождению в веб-интерфейсе SkillFlow.")
+
+
+async def retake_callback(callback_query):
+    payload = callback_query.data or ""
+    _, action, test_id = payload.split(":")
+    if action == "start":
+        await callback_query.message.answer(f"Повторный запуск теста #{test_id} подтверждён. Откройте его в веб-интерфейсе.")
+    else:
+        await callback_query.message.answer("Повторное прохождение отменено.")
+    await callback_query.answer()
 
 
 async def rating(message: Message):
@@ -99,6 +144,8 @@ async def main():
     dp.message.register(token, Command("token"))
     dp.message.register(stats, Command("stats"))
     dp.message.register(link, Command("link"))
+    dp.message.register(open_test, Command("open"))
+    dp.callback_query.register(retake_callback, F.data.startswith("retake:"))
 
     bot = Bot(BOT_TOKEN)
     await dp.start_polling(bot)

@@ -6,6 +6,7 @@ export const state = {
   subjects: [],
   ratings: [],
   selectedTest: null,
+  selectedTestAllowRetake: false,
   myTests: [],
   currentPage: document.body.dataset.page || 'home',
   currentTheme: storage.getTheme(),
