@@ -113,7 +113,10 @@ def list_tests(
         if not current_user:
             raise HTTPException(status_code=401, detail="Нужна авторизация")
         return [serialize_test_list_item(item) for item in repo.get_by_author(current_user.id)]
-    return [serialize_test_list_item(item) for item in repo.get_published(subject_id)]
+    attempted_test_ids: set[int] = set()
+    if current_user and current_user.role == Role.STUDENT:
+        attempted_test_ids = {item.test_id for item in AttemptRepository(db).get_completed_by_student(current_user.id)}
+    return [serialize_test_list_item(item, item.id in attempted_test_ids) for item in repo.get_published(subject_id)]
 
 
 @router.get("/tests/pending", response_model=list[TestListItem])
@@ -257,7 +260,7 @@ def connect_telegram(payload: TelegramConnectRequest, db: Session = Depends(get_
     db.commit()
     return {"status": "connected", "email": user.email}
 
-def serialize_test_list_item(test: Test):
+def serialize_test_list_item(test: Test, attempted: bool = False):
     return {
         "id": test.id,
         "title": test.title,
@@ -268,6 +271,7 @@ def serialize_test_list_item(test: Test):
         "author_name": test.author.full_name,
         "moderation_comment": test.moderation_comment,
         "question_count": len(test.questions),
+        "attempted": attempted,
     }
 
 
