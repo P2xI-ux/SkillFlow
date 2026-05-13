@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 class QuestionScoreResult:
     question_id: int
     is_correct: bool
-    points_earned: int
+    points_earned: float
     selected_option_ids: list[int] = field(default_factory=list)
     correct_option_ids: list[int] = field(default_factory=list)
     text_answer: str | None = None

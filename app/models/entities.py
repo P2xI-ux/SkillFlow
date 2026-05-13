@@ -2,12 +2,23 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Table, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.enums import AttemptStatus, QuestionType, Role, TestStatus
-
 
 teacher_subjects = Table(
     "teacher_subjects",
@@ -32,16 +43,24 @@ class User(Base):
     program_code: Mapped[str] = mapped_column(String(32), nullable=True)
     telegram_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=True)
     telegram_link_code: Mapped[str] = mapped_column(String(6), nullable=True)
-    telegram_link_code_created_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    telegram_link_code_expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    telegram_link_code_created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=True
+    )
+    telegram_link_code_expires_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     tests = relationship("Test", back_populates="author", foreign_keys="Test.author_id")
-    moderated_tests = relationship("Test", back_populates="moderator", foreign_keys="Test.moderator_id")
+    moderated_tests = relationship(
+        "Test", back_populates="moderator", foreign_keys="Test.moderator_id"
+    )
     attempts = relationship("TestAttempt", back_populates="student")
     ratings = relationship("Rating", back_populates="student")
     earned_achievements = relationship("UserAchievement", back_populates="student")
-    teaching_subjects = relationship("Subject", secondary=teacher_subjects, back_populates="teachers")
+    teaching_subjects = relationship(
+        "Subject", secondary=teacher_subjects, back_populates="teachers"
+    )
 
 
 class Subject(Base):
@@ -53,7 +72,9 @@ class Subject(Base):
 
     tests = relationship("Test", back_populates="subject")
     ratings = relationship("Rating", back_populates="subject")
-    teachers = relationship("User", secondary=teacher_subjects, back_populates="teaching_subjects")
+    teachers = relationship(
+        "User", secondary=teacher_subjects, back_populates="teaching_subjects"
+    )
 
 
 class Test(Base):
@@ -64,9 +85,11 @@ class Test(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     difficulty: Mapped[int] = mapped_column(Integer, default=1)
     question_count: Mapped[int] = mapped_column(Integer, default=0)
-    max_score: Mapped[int] = mapped_column(Integer, default=0)
+    max_score: Mapped[float] = mapped_column(Float, default=0.0)
     created_by_role: Mapped[str] = mapped_column(String(32), nullable=True)
-    status: Mapped[TestStatus] = mapped_column(Enum(TestStatus), default=TestStatus.DRAFT)
+    status: Mapped[TestStatus] = mapped_column(
+        Enum(TestStatus), default=TestStatus.DRAFT
+    )
     moderation_comment: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     published_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
@@ -75,9 +98,13 @@ class Test(Base):
     moderator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     author = relationship("User", back_populates="tests", foreign_keys=[author_id])
-    moderator = relationship("User", back_populates="moderated_tests", foreign_keys=[moderator_id])
+    moderator = relationship(
+        "User", back_populates="moderated_tests", foreign_keys=[moderator_id]
+    )
     subject = relationship("Subject", back_populates="tests")
-    questions = relationship("Question", back_populates="test", cascade="all, delete-orphan")
+    questions = relationship(
+        "Question", back_populates="test", cascade="all, delete-orphan"
+    )
     attempts = relationship("TestAttempt", back_populates="test")
 
 
@@ -86,14 +113,16 @@ class Question(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     text: Mapped[str] = mapped_column(Text)
-    points: Mapped[int] = mapped_column(Integer, default=1)
+    points: Mapped[float] = mapped_column(Float, default=1.0)
     question_type: Mapped[QuestionType] = mapped_column(Enum(QuestionType))
     payload: Mapped[str] = mapped_column(Text, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"))
 
     test = relationship("Test", back_populates="questions")
-    answer_options = relationship("AnswerOption", back_populates="question", cascade="all, delete-orphan")
+    answer_options = relationship(
+        "AnswerOption", back_populates="question", cascade="all, delete-orphan"
+    )
     answers = relationship("UserAnswer", back_populates="question")
 
 
@@ -115,16 +144,20 @@ class TestAttempt(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    score: Mapped[int] = mapped_column(Integer, default=0)
-    max_score: Mapped[int] = mapped_column(Integer, default=0)
-    rating_delta: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[AttemptStatus] = mapped_column(Enum(AttemptStatus), default=AttemptStatus.IN_PROGRESS)
+    score: Mapped[float] = mapped_column(Float, default=0.0)
+    max_score: Mapped[float] = mapped_column(Float, default=0.0)
+    rating_delta: Mapped[float] = mapped_column(Float, default=0.0)
+    status: Mapped[AttemptStatus] = mapped_column(
+        Enum(AttemptStatus), default=AttemptStatus.IN_PROGRESS
+    )
     test_id: Mapped[int] = mapped_column(ForeignKey("tests.id"))
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     test = relationship("Test", back_populates="attempts")
     student = relationship("User", back_populates="attempts")
-    answers = relationship("UserAnswer", back_populates="attempt", cascade="all, delete-orphan")
+    answers = relationship(
+        "UserAnswer", back_populates="attempt", cascade="all, delete-orphan"
+    )
 
 
 class UserAnswer(Base):
@@ -134,7 +167,7 @@ class UserAnswer(Base):
     selected_option_ids: Mapped[str] = mapped_column(Text, default="")
     answer_payload: Mapped[str] = mapped_column(Text, nullable=True)
     is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
-    points_earned: Mapped[int] = mapped_column(Integer, default=0)
+    points_earned: Mapped[float] = mapped_column(Float, default=0.0)
     attempt_id: Mapped[int] = mapped_column(ForeignKey("test_attempts.id"))
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
 
@@ -144,11 +177,14 @@ class UserAnswer(Base):
 
 class Rating(Base):
     __tablename__ = "ratings"
-    __table_args__ = (UniqueConstraint("student_id", "subject_id", name="uq_rating_student_subject"),)
+    __table_args__ = (
+        UniqueConstraint("student_id", "subject_id", name="uq_rating_student_subject"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    total_score: Mapped[int] = mapped_column(Integer, default=0)
+    total_score: Mapped[float] = mapped_column(Float, default=0.0)
     position: Mapped[int] = mapped_column(Integer, nullable=True)
+
     last_updated: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     student_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
@@ -170,7 +206,9 @@ class Achievement(Base):
 
 class UserAchievement(Base):
     __tablename__ = "user_achievements"
-    __table_args__ = (UniqueConstraint("student_id", "achievement_id", name="uq_user_achievement"),)
+    __table_args__ = (
+        UniqueConstraint("student_id", "achievement_id", name="uq_user_achievement"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     earned_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

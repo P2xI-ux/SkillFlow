@@ -1,5 +1,5 @@
-from datetime import datetime
 import json
+from datetime import datetime
 
 from app.models.entities import Test, TestAttempt, User, UserAnswer
 from app.models.enums import AttemptStatus, Role, TestStatus
@@ -66,7 +66,9 @@ class TestService:
         self.test_repository.db.flush()
         return test
 
-    def moderate_test(self, test_id: int, current_user, action: str, comment: str | None):
+    def moderate_test(
+        self, test_id: int, current_user, action: str, comment: str | None
+    ):
         if current_user.role != Role.TEACHER:
             raise ValueError("Модерировать тесты может только преподаватель")
         test = self.test_repository.get_full(test_id)
@@ -89,15 +91,21 @@ class TestService:
             self.test_repository.db.flush()
         return test
 
-    def take_test(self, test_id: int, current_user, answers: list, allow_retake: bool = False):
+    def take_test(
+        self, test_id: int, current_user, answers: list, allow_retake: bool = False
+    ):
         if current_user.role != Role.STUDENT:
             raise ValueError("Проходить тесты может только студент")
         test = self.test_repository.get_full(test_id)
         if not test or test.status != TestStatus.PUBLISHED:
             raise ValueError("Опубликованный тест не найден")
-        previous_attempt = self.attempt_repository.get_completed_by_student_for_test(current_user.id, test.id)
+        previous_attempt = self.attempt_repository.get_completed_by_student_for_test(
+            current_user.id, test.id
+        )
         if previous_attempt and not allow_retake:
-            raise ValueError("Тест уже был пройден. Повторная попытка требует явного подтверждения.")
+            raise ValueError(
+                "Тест уже был пройден. Повторная попытка требует явного подтверждения."
+            )
         answer_map = {item.question_id: item for item in answers}
         max_score = sum(question.points for question in test.questions)
         attempt = TestAttempt(
@@ -109,7 +117,7 @@ class TestService:
         )
         self.attempt_repository.save(attempt)
 
-        score = 0
+        score = 0.0
         feedback = []
         scoring_visitor = ScoringVisitor()
         for question in sorted(test.questions, key=lambda value: value.sort_order):
@@ -119,8 +127,12 @@ class TestService:
                 UserAnswer(
                     attempt_id=attempt.id,
                     question_id=question.id,
-                    selected_option_ids=",".join(str(item) for item in result.selected_option_ids),
-                    answer_payload=json.dumps(result.answer_payload, ensure_ascii=False) if result.answer_payload else None,
+                    selected_option_ids=",".join(
+                        str(item) for item in result.selected_option_ids
+                    ),
+                    answer_payload=json.dumps(result.answer_payload, ensure_ascii=False)
+                    if result.answer_payload
+                    else None,
                     is_correct=result.is_correct,
                     points_earned=result.points_earned,
                 )
@@ -136,7 +148,11 @@ class TestService:
                 is_tournament=False,
             )
         )
-        rating_delta = strategy.calculate(score, test.difficulty) if current_user.role == Role.STUDENT else 0
+        rating_delta = (
+            strategy.calculate(score, test.difficulty)
+            if current_user.role == Role.STUDENT
+            else 0
+        )
         if previous_attempt:
             rating_delta -= previous_attempt.rating_delta
         attempt.rating_delta = rating_delta
@@ -165,7 +181,9 @@ class TestService:
 
     def _handle_rating_update(self, event):
         payload = event.payload
-        self.rating_repository.update_score(payload["student_id"], payload["subject_id"], payload["rating_delta"])
+        self.rating_repository.update_score(
+            payload["student_id"], payload["subject_id"], payload["rating_delta"]
+        )
         return []
 
     def _handle_achievement_update(self, event):
@@ -194,7 +212,15 @@ class TestService:
         subject_breakdown = {item.subject.name: item.total_score for item in my_ratings}
         total_score = sum(item.total_score for item in my_ratings)
         avg = (
-            round(sum((item.score / item.max_score) * 100 for item in unique_attempts if item.max_score) / len(unique_attempts), 2)
+            round(
+                sum(
+                    (item.score / item.max_score) * 100
+                    for item in unique_attempts
+                    if item.max_score
+                )
+                / len(unique_attempts),
+                2,
+            )
             if unique_attempts
             else 0
         )
@@ -204,7 +230,9 @@ class TestService:
                 "subject_name": item.test.subject.name,
                 "score": item.score,
                 "max_score": item.max_score,
-                "completed_at": item.completed_at.isoformat() if item.completed_at else None,
+                "completed_at": item.completed_at.isoformat()
+                if item.completed_at
+                else None,
             }
             for item in unique_attempts[:5]
         ]
