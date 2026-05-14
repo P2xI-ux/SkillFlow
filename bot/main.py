@@ -14,11 +14,17 @@ from aiogram.types import (
     Message,
 )
 
+from aiogram.client.session.aiohttp import AiohttpSession
+
 from app.core.config import settings
 from app.services.telegram_adapter import TelegramAdapter
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", settings.telegram_bot_token)
 API_BASE_URL = os.getenv("API_BASE_URL", settings.api_base_url)
+TELEGRAM_PROXY_URL = os.getenv("TELEGRAM_PROXY_URL")
+
+session = AiohttpSession(proxy=TELEGRAM_PROXY_URL) if TELEGRAM_PROXY_URL else AiohttpSession()
+
 adapter = TelegramAdapter(API_BASE_URL)
 
 
@@ -280,7 +286,10 @@ async def main():
     dp.message.register(handle_text_answer, TestPassStates.answering)
 >>>>>>> Stashed changes
 
-    bot = Bot(BOT_TOKEN)
+    bot = Bot(
+    token=BOT_TOKEN,
+    session=session,
+    )
     await dp.start_polling(bot)
 
 
