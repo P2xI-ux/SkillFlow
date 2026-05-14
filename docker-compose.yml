@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: skillflow_db
     volumes:
-      - postgres_/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d skillflow_db"]
       interval: 10s
@@ -33,9 +33,12 @@ services:
 
   bot:
     build: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       API_BASE_URL: http://app:8000
+      TELEGRAM_PROXY_URL: ${TELEGRAM_PROXY_URL:-socks5://host.docker.internal:10808}
     volumes:
       - ./:/code
     working_dir: /code
@@ -44,4 +47,4 @@ services:
       - app
 
 volumes:
-  postgres_
+  postgres_data:
