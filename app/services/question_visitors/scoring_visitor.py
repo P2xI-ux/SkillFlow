@@ -43,28 +43,29 @@ class ScoringVisitor:
         correct_ids = set(
             option.id for option in question.answer_options if option.is_correct
         )
-        all_option_ids = set(option.id for option in question.answer_options)
 
-        # Standard rule: 0 if any incorrect selected
-        incorrect_selected = selected_ids - correct_ids
-        if incorrect_selected or not selected_ids:
+        if not selected_ids:
             return self._choice_result(
-                question,
-                sorted(list(selected_ids)),
-                sorted(list(correct_ids)),
-                False,
-                0.0,
+                question, [], sorted(list(correct_ids)), False, 0.0
             )
 
-        # Partial points: (correct_selected / total_correct) * points
         correct_selected_count = len(selected_ids & correct_ids)
+        incorrect_selected_count = len(selected_ids - correct_ids)
         total_correct_count = len(correct_ids)
 
-        is_correct = correct_selected_count == total_correct_count
-        points_earned = (
-            (correct_selected_count / total_correct_count) * question.points
-            if total_correct_count > 0
-            else 0.0
+        # Partial points: (correct_selected - incorrect_selected) / total_correct
+        # This penalizes guessing while rewarding correct choices.
+        if total_correct_count > 0:
+            ratio = (
+                correct_selected_count - incorrect_selected_count
+            ) / total_correct_count
+            points_earned = max(0.0, ratio * question.points)
+        else:
+            points_earned = 0.0
+
+        is_correct = (
+            correct_selected_count == total_correct_count
+            and incorrect_selected_count == 0
         )
 
         return self._choice_result(

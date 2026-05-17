@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.events import event_bus
 from app.core.university_catalog import get_catalog_payload
 from app.dependencies import get_current_user, get_current_user_optional
 from app.models.entities import Subject, Test, User
@@ -35,11 +36,9 @@ from app.schemas import (
     UserResponse,
 )
 from app.services.auth_service import AuthService
-from app.services.event_bus import EventBus
 from app.services.test_service import TestService
 
 router = APIRouter(prefix="/api")
-event_bus = EventBus()
 TELEGRAM_LINK_CODE_TTL_SECONDS = 600
 
 
@@ -313,7 +312,7 @@ def connect_telegram(payload: TelegramConnectRequest, db: Session = Depends(get_
     return {"status": "connected", "email": user.email}
 
 
-def serialize_test_list_item(test: Test):
+def serialize_test_list_item(test: Test, attempted: bool = False):
     return {
         "id": test.id,
         "title": test.title,
@@ -324,6 +323,7 @@ def serialize_test_list_item(test: Test):
         "author_name": test.author.full_name,
         "moderation_comment": test.moderation_comment,
         "question_count": len(test.questions),
+        "attempted": attempted,
     }
 
 

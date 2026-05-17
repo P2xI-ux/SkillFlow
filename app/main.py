@@ -6,7 +6,9 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 from app.core.database import Base, SessionLocal, engine
+from app.core.events import event_bus
 from app.models.entities import Achievement, Subject
+from app.services.test_service import TestService
 
 app = FastAPI(title="SkillFlow MVP", version="0.1.0")
 app.include_router(router)
@@ -19,6 +21,13 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 def startup_event():
     Base.metadata.create_all(bind=engine)
     seed_data()
+    setup_event_handlers()
+
+
+def setup_event_handlers():
+    event_bus.subscribe("TEST_COMPLETED", TestService._handle_rating_update)
+    event_bus.subscribe("TEST_COMPLETED", TestService._handle_achievement_update)
+    event_bus.subscribe("TEST_PUBLISHED", TestService._handle_creator_achievement)
 
 
 @app.get("/")
@@ -39,7 +48,6 @@ def dashboard_page():
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 
 def seed_data():

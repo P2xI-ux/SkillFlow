@@ -43,11 +43,39 @@ class RatingRepository(Repository):
         return rating.position if rating else None
 
     def _recalculate_positions(self, subject_id: int):
-        ratings = self.db.scalars(
-            select(Rating)
+        # Using a more efficient approach with a single update if possible,
+        # but for compatibility across DBs, we'll fetch IDs and positions.
+        # However, we can use a CTE and RANK() to do it more efficiently.
+        from sqlalchemy import text
+
+        sql = text("""
+            UPDATE ratings
+            SET position = sub.new_pos
+            FROM (
+                SELECT id, RANK() OVER (
+                    ORDER BY total_score DESC, last_updated ASC
+                ) as new_pos
+                FROM ratings
+                WHERE subject_id = :subject_id
+            ) as sub
+            WHERE ratings.id = sub.id
+        """)
+
+        # SQLite doesn't support UPDATE FROM, so we use a fallback for SQLite
+        # or just use the more efficient approach for the specific DB.
+        # For now, let's use the list-based approach but optimized for bulk update if possible.
+        # Actually, let's stick to a clean SQLAlchemy approach that is relatively efficient.
+
+        stmt = (
+            select(Rating.id)
             .where(Rating.subject_id == subject_id)
             .order_by(Rating.total_score.desc(), Rating.last_updated.asc())
-        ).all()
-        for index, item in enumerate(ratings, start=1):
-            item.position = index
+        )
+        rating_ids = self.db.scalars(stmt).all()
+
+        # We can use bulk update if supported, but simple loop with flush is okay for now
+        # if we avoid full entity loading.
+        for index, r_id in enumerate(rating_ids, start=1):
+            self.db.query(Rating).filter(Rating.id == r_id).update({"position": index})
+
         self.db.flush()

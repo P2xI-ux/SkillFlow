@@ -77,10 +77,16 @@ class QuestionCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_question_payload(self):
-        if self.question_type in {QuestionType.SINGLE_CHOICE, QuestionType.MULTIPLE_CHOICE}:
+        if self.question_type in {
+            QuestionType.SINGLE_CHOICE,
+            QuestionType.MULTIPLE_CHOICE,
+        }:
             if not 2 <= len(self.options) <= 10:
                 raise ValueError("Choice questions require 2-10 options")
-        if self.question_type == QuestionType.TEXT_ANSWER and not (self.correct_answer or "").strip():
+        if (
+            self.question_type == QuestionType.TEXT_ANSWER
+            and not (self.correct_answer or "").strip()
+        ):
             raise ValueError("TEXT_ANSWER requires correct_answer")
         if self.question_type == QuestionType.MATCHING and len(self.matching_pairs) < 2:
             raise ValueError("MATCHING requires at least two pairs")
@@ -125,6 +131,7 @@ class TestListItem(BaseModel):
     author_name: str
     moderation_comment: str | None = None
     question_count: int
+    attempted: bool = False
 
 
 class TestDetail(BaseModel):

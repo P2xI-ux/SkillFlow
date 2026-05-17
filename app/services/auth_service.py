@@ -1,7 +1,10 @@
 from sqlalchemy import select
 
 from app.core.security import create_access_token, get_password_hash, verify_password
-from app.core.university_catalog import validate_student_profile, validate_teacher_profile
+from app.core.university_catalog import (
+    validate_student_profile,
+    validate_teacher_profile,
+)
 from app.models.entities import Subject, User
 from app.models.enums import Role
 from app.repositories.user_repository import UserRepository
@@ -14,24 +17,33 @@ class AuthService:
     def register(self, payload):
         if self.user_repository.get_by_email(payload.email):
             raise ValueError("Пользователь с таким email уже существует")
+
         teaching_subjects = []
+        faculty = payload.faculty
+
         if payload.role == Role.TEACHER:
-            validate_teacher_profile(payload.faculty, payload.department)
+            faculty = validate_teacher_profile(payload.faculty, payload.department)
             if not payload.subject_ids:
-                raise ValueError("Для преподавателя нужно выбрать хотя бы одну дисциплину")
+                raise ValueError(
+                    "Для преподавателя нужно выбрать хотя бы одну дисциплину"
+                )
             teaching_subjects = list(
-                self.user_repository.db.scalars(select(Subject).where(Subject.id.in_(payload.subject_ids))).all()
+                self.user_repository.db.scalars(
+                    select(Subject).where(Subject.id.in_(payload.subject_ids))
+                ).all()
             )
             if len(teaching_subjects) != len(set(payload.subject_ids)):
                 raise ValueError("Некоторые дисциплины не найдены")
+
         if payload.role == Role.STUDENT:
-            validate_student_profile(payload.faculty, payload.program_code)
+            faculty = validate_student_profile(payload.faculty, payload.program_code)
+
         user = User(
             email=payload.email,
             password_hash=get_password_hash(payload.password),
             full_name=payload.full_name,
             role=payload.role,
-            faculty=payload.faculty,
+            faculty=faculty,
             study_group=payload.study_group,
             course=payload.course,
             department=payload.department,

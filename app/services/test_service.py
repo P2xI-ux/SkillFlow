@@ -38,23 +38,27 @@ class TestService:
             rating_repository,
             test_repository,
         )
-        self._subscribe_events()
-
-    def _subscribe_events(self):
-        if getattr(self.event_bus, "_skillflow_registered", False):
-            return
-        self.event_bus.subscribe("TEST_COMPLETED", self._handle_rating_update)
-        self.event_bus.subscribe("TEST_COMPLETED", self._handle_achievement_update)
-        self.event_bus.subscribe("TEST_PUBLISHED", self._handle_creator_achievement)
-        self.event_bus._skillflow_registered = True
 
     def create_test(self, payload, author_id: int):
         author = self.user_repository.get_by_id(User, author_id)
         if not author:
             raise ValueError("Автор теста не найден")
-        if author.role != Role.STUDENT:
-            raise ValueError("Создавать тесты может только студент")
-        return TestBuilder(self.test_repository).build(payload, author)
+
+        # Cross-validation: Teachers can only create tests for their own subjects
+        if author.role == Role.TEACHER:
+            allowed_subject_ids = {s.id for s in author.teaching_subjects}
+            if payload.subject_id not in allowed_subject_ids:
+                raise ValueError(
+                    "Вы можете создавать тесты только по своим дисциплинам"
+                )
+
+        try:
+            test = TestBuilder(self.test_repository).build(payload, author)
+            self.test_repository.db.flush()
+            return test
+        except Exception as exc:
+            self.test_repository.db.rollback()
+            raise exc
 
     def submit_for_moderation(self, test_id: int, current_user):
         test = self.test_repository.get_full(test_id)
@@ -83,7 +87,9 @@ class TestService:
             test.moderator_id = current_user.id
             test.moderation_comment = comment
             self.test_repository.db.flush()
-            self.event_bus.publish("TEST_PUBLISHED", {"student_id": test.author_id})
+            self.event_bus.publish(
+                "TEST_PUBLISHED", {"student_id": test.author_id}, service=self
+            )
         else:
             machine.apply(test, "reject")
             test.moderator_id = current_user.id
@@ -96,99 +102,118 @@ class TestService:
     ):
         if current_user.role != Role.STUDENT:
             raise ValueError("Проходить тесты может только студент")
+
         test = self.test_repository.get_full(test_id)
         if not test or test.status != TestStatus.PUBLISHED:
             raise ValueError("Опубликованный тест не найден")
-        previous_attempt = self.attempt_repository.get_completed_by_student_for_test(
-            current_user.id, test.id
-        )
-        if previous_attempt and not allow_retake:
-            raise ValueError(
-                "Тест уже был пройден. Повторная попытка требует явного подтверждения."
-            )
-        answer_map = {item.question_id: item for item in answers}
-        max_score = sum(question.points for question in test.questions)
-        attempt = TestAttempt(
-            test_id=test.id,
-            student_id=current_user.id,
-            max_score=max_score,
-            status=AttemptStatus.COMPLETED,
-            completed_at=datetime.utcnow(),
-        )
-        self.attempt_repository.save(attempt)
 
-        score = 0.0
-        feedback = []
-        scoring_visitor = ScoringVisitor()
-        for question in sorted(test.questions, key=lambda value: value.sort_order):
-            result = scoring_visitor.score(question, answer_map.get(question.id))
-            score += result.points_earned
-            self.attempt_repository.save(
-                UserAnswer(
-                    attempt_id=attempt.id,
-                    question_id=question.id,
-                    selected_option_ids=",".join(
-                        str(item) for item in result.selected_option_ids
-                    ),
-                    answer_payload=json.dumps(result.answer_payload, ensure_ascii=False)
-                    if result.answer_payload
-                    else None,
-                    is_correct=result.is_correct,
-                    points_earned=result.points_earned,
+        # Atomic block starts here
+        try:
+            previous_attempt = (
+                self.attempt_repository.get_completed_by_student_for_test(
+                    current_user.id, test.id
                 )
             )
-            feedback.append(result.as_feedback())
+            if previous_attempt and not allow_retake:
+                raise ValueError(
+                    "Тест уже был пройден. Повторная попытка требует явного подтверждения."
+                )
 
-        attempt.score = score
-        strategy = RatingStrategyFactory.build(
-            RatingContext(
-                score=score,
-                difficulty=test.difficulty,
-                is_first_attempt=previous_attempt is None,
-                is_tournament=False,
+            answer_map = {item.question_id: item for item in answers}
+            max_score = sum(question.points for question in test.questions)
+
+            attempt = TestAttempt(
+                test_id=test.id,
+                student_id=current_user.id,
+                max_score=max_score,
+                status=AttemptStatus.COMPLETED,
+                completed_at=datetime.utcnow(),
             )
-        )
-        rating_delta = (
-            strategy.calculate(score, test.difficulty)
-            if current_user.role == Role.STUDENT
-            else 0
-        )
-        if previous_attempt:
-            rating_delta -= previous_attempt.rating_delta
-        attempt.rating_delta = rating_delta
-        self.attempt_repository.db.flush()
-        earned = self.event_bus.publish(
-            "TEST_COMPLETED",
-            {
-                "student_id": current_user.id,
-                "subject_id": test.subject_id,
-                "test_id": test.id,
+            self.attempt_repository.save(attempt)
+
+            score = 0.0
+            feedback = []
+            scoring_visitor = ScoringVisitor()
+            for question in sorted(test.questions, key=lambda value: value.sort_order):
+                result = scoring_visitor.score(question, answer_map.get(question.id))
+                score += result.points_earned
+                self.attempt_repository.save(
+                    UserAnswer(
+                        attempt_id=attempt.id,
+                        question_id=question.id,
+                        selected_option_ids=",".join(
+                            str(item) for item in result.selected_option_ids
+                        ),
+                        answer_payload=json.dumps(
+                            result.answer_payload, ensure_ascii=False
+                        )
+                        if result.answer_payload
+                        else None,
+                        is_correct=result.is_correct,
+                        points_earned=result.points_earned,
+                    )
+                )
+                feedback.append(result.as_feedback())
+
+            attempt.score = score
+            strategy = RatingStrategyFactory.build(
+                RatingContext(
+                    score=score,
+                    difficulty=test.difficulty,
+                    is_first_attempt=previous_attempt is None,
+                    is_tournament=False,
+                )
+            )
+            rating_delta = (
+                strategy.calculate(score, test.difficulty)
+                if current_user.role == Role.STUDENT
+                else 0
+            )
+            if previous_attempt:
+                rating_delta -= previous_attempt.rating_delta
+
+            attempt.rating_delta = rating_delta
+            self.attempt_repository.db.flush()
+
+            earned = self.event_bus.publish(
+                "TEST_COMPLETED",
+                {
+                    "student_id": current_user.id,
+                    "subject_id": test.subject_id,
+                    "test_id": test.id,
+                    "score": score,
+                    "max_score": max_score,
+                    "difficulty": test.difficulty,
+                    "rating_delta": rating_delta,
+                },
+                service=self,
+            )
+
+            return {
+                "attempt_id": attempt.id,
                 "score": score,
                 "max_score": max_score,
-                "difficulty": test.difficulty,
+                "percentage": round((score / max_score) * 100, 2) if max_score else 0,
                 "rating_delta": rating_delta,
-            },
-        )
-        return {
-            "attempt_id": attempt.id,
-            "score": score,
-            "max_score": max_score,
-            "percentage": round((score / max_score) * 100, 2) if max_score else 0,
-            "rating_delta": rating_delta,
-            "earned_achievements": earned,
-            "feedback": feedback,
-        }
+                "earned_achievements": earned,
+                "feedback": feedback,
+            }
+        except Exception as exc:
+            self.test_repository.db.rollback()
+            raise exc
 
-    def _handle_rating_update(self, event):
+    @staticmethod
+    def _handle_rating_update(event, service: "TestService"):
         payload = event.payload
-        self.rating_repository.update_score(
+        service.rating_repository.update_score(
             payload["student_id"], payload["subject_id"], payload["rating_delta"]
         )
         return []
 
-    def _handle_achievement_update(self, event):
+    @staticmethod
+    def _handle_achievement_update(event, service: "TestService"):
         payload = event.payload
-        return self.achievement_service.award_if_needed(
+        return service.achievement_service.award_if_needed(
             payload["student_id"],
             payload["subject_id"],
             payload["test_id"],
@@ -196,9 +221,10 @@ class TestService:
             payload["max_score"],
         )
 
-    def _handle_creator_achievement(self, event):
+    @staticmethod
+    def _handle_creator_achievement(event, service: "TestService"):
         payload = event.payload
-        return self.achievement_service.award_test_creator(payload["student_id"])
+        return service.achievement_service.award_test_creator(payload["student_id"])
 
     def build_stats(self, current_user):
         attempts = self.attempt_repository.get_completed_by_student(current_user.id)
