@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
@@ -14,7 +15,7 @@ class TokenResponse(BaseModel):
 
 class UserRegister(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=8, max_length=128)
     full_name: str
     role: Role
     faculty: str | None = None
@@ -23,6 +24,30 @@ class UserRegister(BaseModel):
     department: str | None = None
     program_code: str | None = None
     subject_ids: list[int] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_password_strength(self):
+        has_letter = bool(re.search(r"[A-Za-zА-Яа-я]", self.password or ""))
+        has_digit = bool(re.search(r"\d", self.password or ""))
+        if not (has_letter and has_digit):
+            raise ValueError("Пароль должен содержать минимум одну букву и одну цифру")
+        return self
+
+    @model_validator(mode="after")
+    def validate_role_specific_profile(self):
+        if self.role == Role.STUDENT:
+            if not (self.study_group or "").strip():
+                raise ValueError("Для студента обязательна учебная группа")
+            if self.course is None or self.course < 1 or self.course > 6:
+                raise ValueError("Для студента курс должен быть от 1 до 6")
+            if not (self.program_code or "").strip():
+                raise ValueError("Для студента обязателен код направления")
+        if self.role == Role.TEACHER:
+            if not (self.department or "").strip():
+                raise ValueError("Для преподавателя обязательна кафедра")
+            if not self.subject_ids:
+                raise ValueError("Для преподавателя нужно выбрать хотя бы одну дисциплину")
+        return self
 
 
 class UserLogin(BaseModel):
@@ -150,6 +175,12 @@ class ModerateTestRequest(BaseModel):
     action: Literal["approve", "reject"]
     comment: str | None = None
 
+    @model_validator(mode="after")
+    def validate_moderation_comment(self):
+        if self.action == "reject" and not (self.comment or "").strip():
+            raise ValueError("Для отклонения теста нужен комментарий")
+        return self
+
 
 class SubmitTestRequest(BaseModel):
     test_id: int
@@ -210,14 +241,14 @@ class StatsResponse(BaseModel):
 
 
 class TelegramLinkResponse(BaseModel):
-    code: str
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
     expires_at: datetime
-    ttl_seconds: int
+    ttl_seconds: int = Field(ge=0)
 
 
 class TelegramConnectRequest(BaseModel):
-    code: str
-    telegram_id: str
+    code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    telegram_id: str = Field(min_length=3, max_length=64)
 
 
 TokenResponse.model_rebuild()

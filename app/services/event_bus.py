@@ -1,7 +1,11 @@
 from collections import defaultdict
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Callable
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,8 +26,17 @@ class EventBus:
 
     def publish(self, event_name: str, payload: dict, **kwargs) -> list[str]:
         event = Event(name=event_name, payload=payload)
+        handlers = self._subscribers[event_name]
+        logger.info(
+            "event_published",
+            extra={
+                "event_name": event_name,
+                "handlers_count": len(handlers),
+                "payload_keys": sorted(payload.keys()),
+            },
+        )
         messages: list[str] = []
-        for handler in self._subscribers[event_name]:
+        for handler in handlers:
             result = handler(event, **kwargs) or []
             messages.extend(result)
         return messages

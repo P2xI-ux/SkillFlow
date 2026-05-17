@@ -151,3 +151,59 @@ def test_university_catalog_validates_teacher_department_binding():
         assert "не относится" in str(exc)
     else:
         raise AssertionError("Expected ValueError")
+
+
+def test_telegram_link_code_generation_reuses_active_code_for_same_user_without_changes():
+    from app.api.routes import create_link_code
+
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine)
+    db = Session()
+    try:
+        user = User(
+            email="linked@example.com",
+            password_hash="hash",
+            full_name="Linked User",
+            role=Role.STUDENT,
+            telegram_link_code="654321",
+            telegram_link_code_expires_at=datetime.utcnow() + timedelta(minutes=5),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        result = create_link_code(db=db, current_user=user)
+        assert result["code"] == "654321"
+        assert result["ttl_seconds"] >= 0
+    finally:
+        db.close()
+
+
+class _DummyPayload:
+    def __init__(self, subject_id=1):
+        self.subject_id = subject_id
+
+
+def test_teacher_cannot_create_test():
+    from app.services.test_service import TestService
+
+    class _Repo:
+        def __init__(self):
+            self.db = type("DB", (), {"flush": lambda self: None})()
+
+    class _UserRepo:
+        def __init__(self, user):
+            self.user = user
+        def get_by_id(self, *_):
+            return self.user
+
+    teacher = type("Teacher", (), {"role": Role.TEACHER})()
+    service = TestService(_Repo(), None, None, None, _UserRepo(teacher), EventBus())
+
+    try:
+        service.create_test(_DummyPayload(), 1)
+    except ValueError as exc:
+        assert "только студент" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError")

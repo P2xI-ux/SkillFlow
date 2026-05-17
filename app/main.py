@@ -1,7 +1,11 @@
 from pathlib import Path
+import logging
+import time
+import uuid
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request
+from sqlalchemy import text
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
@@ -10,6 +14,9 @@ from app.core.events import event_bus
 from app.models.entities import Achievement, Subject
 from app.services.test_service import TestService
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title="SkillFlow MVP", version="0.1.0")
 app.include_router(router)
 
@@ -17,11 +24,32 @@ static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    started = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((time.perf_counter() - started) * 1000, 2)
+    response.headers["X-Request-Id"] = request_id
+    logger.info(
+        "http_request",
+        extra={
+            "request_id": request_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+        },
+    )
+    return response
+
+
 @app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
     seed_data()
     setup_event_handlers()
+    logger.info("startup_completed")
 
 
 def setup_event_handlers():
@@ -48,6 +76,17 @@ def dashboard_page():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/health/ready")
+def health_ready():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {"status": "ready", "database": "ok"}
+    except Exception as exc:
+        logger.exception("health_ready_failed", extra={"error": str(exc)})
+        return JSONResponse(status_code=503, content={"status": "degraded", "database": "error"})
 
 
 def seed_data():
