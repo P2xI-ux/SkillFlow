@@ -73,9 +73,12 @@ class RatingRepository(Repository):
         )
         rating_ids = self.db.scalars(stmt).all()
 
-        # We can use bulk update if supported, but simple loop with flush is okay for now
-        # if we avoid full entity loading.
+        if not rating_ids:
+            return
+
+        ratings = self.db.scalars(select(Rating).where(Rating.id.in_(rating_ids))).all()
+        by_id = {item.id: item for item in ratings}
         for index, r_id in enumerate(rating_ids, start=1):
-            self.db.query(Rating).filter(Rating.id == r_id).update({"position": index})
+            by_id[r_id].position = index
 
         self.db.flush()

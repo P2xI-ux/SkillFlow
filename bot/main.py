@@ -30,8 +30,22 @@ session = (
 adapter = TelegramAdapter(API_BASE_URL)
 
 
+class _RetakeStateStorage:
+    def __init__(self):
+        self._pending = {}
+
+    async def set_pending_retake(self, user_id: int, test_id: int, questions: list[dict]):
+        self._pending[user_id] = {"test_id": test_id, "questions": questions}
+
+    async def pop_pending_retake(self, user_id: int):
+        return self._pending.pop(user_id, None)
+
+state_storage = _RetakeStateStorage()
+
+
 class TestPassStates(StatesGroup):
     answering = State()
+    confirm_retake = State()
 
 
 async def start(message: Message):
@@ -69,6 +83,30 @@ async def tests(message: Message):
     lines.append("\nЧтобы начать, используй: /open <code>&lt;id&gt;</code>")
     await message.answer("\n".join(lines), parse_mode="HTML")
 
+
+
+
+async def my_tests(message: Message):
+    telegram_id = str(message.from_user.id)
+    try:
+        items = await adapter.fetch_tests(telegram_id)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            await message.answer("🔐 Сначала выполните /link <code>&lt;код&gt;</code>.", parse_mode="HTML")
+            return
+        await message.answer("❌ Не удалось получить ваши тесты.")
+        return
+
+    attempted = [i for i in items if i.get("attempted")]
+    if not attempted:
+        await message.answer("📭 У вас пока нет пройденных тестов.")
+        return
+
+    lines = ["<b>✅ Пройденные тесты:</b>\n"]
+    for item in attempted[:15]:
+        lines.append(f"• <b>#{item['id']}</b> {item['title']} — <i>{item['subject_name']}</i>")
+    lines.append("\nДля повторного прохождения: /retake <code>&lt;id&gt;</code>")
+    await message.answer("\n".join(lines), parse_mode="HTML")
 
 async def open_test(message: Message):
     parts = message.text.split(maxsplit=1)
@@ -365,7 +403,7 @@ async def process_next_question(message: Message, state: FSMContext, last_answer
         telegram_id = str(message.chat.id)
         try:
             result = await adapter.submit_attempt(
-                data["test_id"], telegram_id, user_answers, allow_retake=False
+                data["test_id"], telegram_id, user_answers, allow_retake=data.get("allow_retake", False)
             )
 
             report = (
@@ -384,8 +422,12 @@ async def process_next_question(message: Message, state: FSMContext, last_answer
 
             await status_msg.edit_text(report, parse_mode="HTML")
         except httpx.HTTPStatusError as exc:
-            error_data = exc.response.json()
-            error_msg = error_data.get("detail", "Неизвестная ошибка")
+            try:
+                error_data = exc.response.json()
+                error_msg = error_data.get("detail", "Неизвестная ошибка")
+            except Exception:
+                error_msg = exc.response.text or "Неизвестная ошибка"
+
             await status_msg.edit_text(
                 f"❌ <b>Ошибка при отправке:</b>\n{error_msg}", parse_mode="HTML"
             )
@@ -462,6 +504,9 @@ async def link(message: Message):
         return
 
     code = parts[1].strip()
+    if not (len(code) == 6 and code.isdigit()):
+        await message.answer("❌ Код должен состоять из 6 цифр.")
+        return
     try:
         result = await adapter.connect_account(code, str(message.from_user.id))
         await message.answer(
@@ -481,8 +526,51 @@ async def link(message: Message):
                 "❌ <b>Код не найден.</b> Проверьте правильность ввода.",
                 parse_mode="HTML",
             )
+        elif exc.response.status_code == 409:
+            await message.answer("⚠️ Этот Telegram уже привязан к другому аккаунту.")
         else:
             await message.answer("❌ Ошибка при привязке аккаунта.")
+    except ValueError as exc:
+        await message.answer(f"❌ {exc}")
+
+
+
+
+async def retake_test(message: Message):
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip().isdigit():
+        await message.answer("❌ Используйте: /retake <code>&lt;id_теста&gt;</code>", parse_mode="HTML")
+        return
+
+    test_id = int(parts[1].strip())
+    telegram_id = str(message.from_user.id)
+    try:
+        test = await adapter.fetch_test_detail(test_id, telegram_id)
+    except httpx.HTTPStatusError:
+        await message.answer("❓ Тест не найден или недоступен.")
+        return
+
+    await message.answer(
+        f"⚠️ Вы запускаете повторное прохождение теста <b>{test['title']}</b>.\n"
+        "Подтвердите: /confirm_retake или отмените: /cancel",
+        parse_mode="HTML",
+    )
+    await state_storage.set_pending_retake(message.from_user.id, test_id, test["questions"])
+
+
+async def confirm_retake(message: Message, state: FSMContext):
+    pending = await state_storage.pop_pending_retake(message.from_user.id)
+    if not pending:
+        await message.answer("ℹ️ Нет ожидающего ретейка.")
+        return
+    await state.set_state(TestPassStates.answering)
+    await state.update_data(test_id=pending["test_id"], questions=pending["questions"], current_index=0, user_answers=[], current_selection=[], matching_state={}, allow_retake=True)
+    await send_question(message, pending["questions"][0], 0, len(pending["questions"]), state)
+
+
+async def cancel_retake(message: Message):
+    await state_storage.pop_pending_retake(message.from_user.id)
+    await message.answer("Ок, повторное прохождение отменено.")
 
 
 async def main():
@@ -499,6 +587,10 @@ async def main():
     dp.message.register(stats, Command("stats"))
     dp.message.register(link, Command("link"))
     dp.message.register(open_test, Command("open"))
+    dp.message.register(my_tests, Command("mytests"))
+    dp.message.register(retake_test, Command("retake"))
+    dp.message.register(confirm_retake, Command("confirm_retake"))
+    dp.message.register(cancel_retake, Command("cancel"))
 
     dp.callback_query.register(test_start_callback, F.data.startswith("test:start:"))
     dp.callback_query.register(

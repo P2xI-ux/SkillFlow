@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 
 from app.models.entities import Test, TestAttempt, User, UserAnswer
@@ -14,6 +15,9 @@ from app.services.question_visitors import ScoringVisitor
 from app.services.rating_strategy import RatingContext, RatingStrategyFactory
 from app.services.state_machine import TestStateMachine
 from app.services.test_builder import TestBuilder
+
+
+logger = logging.getLogger(__name__)
 
 
 class TestService:
@@ -44,21 +48,12 @@ class TestService:
         if not author:
             raise ValueError("Автор теста не найден")
 
-        # Cross-validation: Teachers can only create tests for their own subjects
-        if author.role == Role.TEACHER:
-            allowed_subject_ids = {s.id for s in author.teaching_subjects}
-            if payload.subject_id not in allowed_subject_ids:
-                raise ValueError(
-                    "Вы можете создавать тесты только по своим дисциплинам"
-                )
+        if author.role != Role.STUDENT:
+            raise ValueError("Создавать тесты может только студент")
 
-        try:
-            test = TestBuilder(self.test_repository).build(payload, author)
-            self.test_repository.db.flush()
-            return test
-        except Exception as exc:
-            self.test_repository.db.rollback()
-            raise exc
+        test = TestBuilder(self.test_repository).build(payload, author)
+        self.test_repository.db.flush()
+        return test
 
     def submit_for_moderation(self, test_id: int, current_user):
         test = self.test_repository.get_full(test_id)
@@ -85,17 +80,37 @@ class TestService:
         if action == "approve":
             machine.apply(test, "approve")
             test.moderator_id = current_user.id
-            test.moderation_comment = comment
+            test.moderation_comment = (comment or "").strip() or None
             self.test_repository.db.flush()
             self.event_bus.publish(
                 "TEST_PUBLISHED", {"student_id": test.author_id}, service=self
             )
+            logger.info("test_moderated", extra={"test_id": test.id, "action": "approve", "moderator_id": current_user.id})
         else:
             machine.apply(test, "reject")
             test.moderator_id = current_user.id
-            test.moderation_comment = comment or "Нужно доработать вопросы"
+            if not (comment or "").strip():
+                raise ValueError("Для отклонения теста нужен комментарий")
+            test.moderation_comment = comment.strip()
             self.test_repository.db.flush()
+            logger.info("test_moderated", extra={"test_id": test.id, "action": "reject", "moderator_id": current_user.id})
         return test
+
+    @staticmethod
+    def _validate_attempt_answers(test, answers: list):
+        question_ids = {q.id for q in test.questions}
+        provided_ids = [item.question_id for item in answers]
+
+        if len(provided_ids) != len(set(provided_ids)):
+            raise ValueError("Ответы содержат дублирующиеся question_id")
+
+        unknown = [qid for qid in provided_ids if qid not in question_ids]
+        if unknown:
+            raise ValueError("Ответы содержат вопросы, которых нет в тесте")
+
+        missing = question_ids.difference(provided_ids)
+        if missing:
+            raise ValueError("Не на все вопросы теста предоставлены ответы")
 
     def take_test(
         self, test_id: int, current_user, answers: list, allow_retake: bool = False
@@ -119,6 +134,7 @@ class TestService:
                     "Тест уже был пройден. Повторная попытка требует явного подтверждения."
                 )
 
+            self._validate_attempt_answers(test, answers)
             answer_map = {item.question_id: item for item in answers}
             max_score = sum(question.points for question in test.questions)
 
@@ -189,6 +205,8 @@ class TestService:
                 service=self,
             )
 
+            logger.info("attempt_completed", extra={"student_id": current_user.id, "test_id": test.id, "score": score, "max_score": max_score, "rating_delta": rating_delta})
+
             return {
                 "attempt_id": attempt.id,
                 "score": score,
@@ -198,9 +216,9 @@ class TestService:
                 "earned_achievements": earned,
                 "feedback": feedback,
             }
-        except Exception as exc:
+        except Exception:
             self.test_repository.db.rollback()
-            raise exc
+            raise
 
     @staticmethod
     def _handle_rating_update(event, service: "TestService"):

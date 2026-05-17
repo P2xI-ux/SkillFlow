@@ -18,7 +18,7 @@ def get_current_user(
     x_bot_token: str | None = Header(default=None),
 ) -> User:
     # 1. Try Bot Authentication
-    if x_telegram_id and x_bot_token == settings.telegram_bot_token:
+    if x_telegram_id and settings.telegram_bot_token and x_bot_token == settings.telegram_bot_token:
         user = UserRepository(db).get_by_telegram_id(x_telegram_id)
         if user:
             return user
@@ -53,7 +53,7 @@ def get_current_user_optional(
     x_bot_token: str | None = Header(default=None),
 ) -> User | None:
     # 1. Try Bot Authentication
-    if x_telegram_id and x_bot_token == settings.telegram_bot_token:
+    if x_telegram_id and settings.telegram_bot_token and x_bot_token == settings.telegram_bot_token:
         return UserRepository(db).get_by_telegram_id(x_telegram_id)
 
     # 2. Try Standard JWT Authentication

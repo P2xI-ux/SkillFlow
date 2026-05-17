@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.events import event_bus
 from app.core.university_catalog import get_catalog_payload
@@ -39,8 +40,19 @@ from app.services.auth_service import AuthService
 from app.services.test_service import TestService
 
 router = APIRouter(prefix="/api")
-TELEGRAM_LINK_CODE_TTL_SECONDS = 600
 
+
+
+
+def _generate_telegram_link_code(user_repo: UserRepository, max_attempts: int = 20) -> str:
+    for _ in range(max_attempts):
+        code = "".join(random.choices(string.digits, k=6))
+        if not user_repo.get_by_active_link_code(code):
+            return code
+    raise HTTPException(
+        status_code=503,
+        detail="Не удалось сгенерировать Telegram link code. Попробуйте позже",
+    )
 
 def get_test_service(db: Session):
     return TestService(
@@ -259,6 +271,13 @@ def my_stats(
 def create_link_code(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
+    if current_user.telegram_id:
+        raise HTTPException(
+            status_code=409,
+            detail="Аккаунт уже привязан к Telegram",
+        )
+
+    user_repo = UserRepository(db)
     now = datetime.utcnow()
     if (
         current_user.telegram_link_code
@@ -274,10 +293,10 @@ def create_link_code(
             ),
         }
 
-    current_user.telegram_link_code = "".join(random.choices(string.digits, k=6))
+    current_user.telegram_link_code = _generate_telegram_link_code(user_repo)
     current_user.telegram_link_code_created_at = now
     current_user.telegram_link_code_expires_at = now + timedelta(
-        seconds=TELEGRAM_LINK_CODE_TTL_SECONDS
+        seconds=settings.telegram_link_code_ttl_seconds
     )
     db.add(current_user)
     db.commit()
@@ -285,13 +304,16 @@ def create_link_code(
     return {
         "code": current_user.telegram_link_code,
         "expires_at": current_user.telegram_link_code_expires_at,
-        "ttl_seconds": TELEGRAM_LINK_CODE_TTL_SECONDS,
+        "ttl_seconds": settings.telegram_link_code_ttl_seconds,
     }
 
 
 @router.post("/telegram/connect")
 def connect_telegram(payload: TelegramConnectRequest, db: Session = Depends(get_db)):
     user_repo = UserRepository(db)
+    existing_user = user_repo.get_by_telegram_id(payload.telegram_id)
+    if existing_user:
+        raise HTTPException(status_code=409, detail="Telegram аккаунт уже привязан")
     user = user_repo.get_by_active_link_code(payload.code)
     if not user:
         expired_user = user_repo.get_by_link_code(payload.code)
