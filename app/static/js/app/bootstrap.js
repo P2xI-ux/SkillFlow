@@ -17,6 +17,7 @@ import { loadPendingTests } from '../features/moderation/moderation.ui.js';
 import { moderateTest } from '../features/moderation/moderation.api.js';
 import { requestTelegramLinkCode } from '../features/telegram/telegram.api.js';
 import { showAchievementToasts, showTelegramCodeModal, showToast } from '../features/telegram/telegram.ui.js';
+import { setBusy } from '../core/ui.js';
 
 function hooks() {
   return { renderProfile, renderRoleCapabilities, toggleRoleWidgets, loadPrivateData };
@@ -140,13 +141,19 @@ async function loadPrivateData() {
 }
 
 async function moderate(testId, action) {
-  await moderateTest(testId, action);
-  await loadPendingTests(moderate);
-  await loadPublicData();
+  try {
+    await moderateTest(testId, action);
+    await loadPendingTests(moderate);
+    await loadPublicData();
+  } catch (error) {
+    showToast('Модерация', error.message, 8);
+  }
 }
 
 async function createTest(event) {
   event.preventDefault();
+  const submitButton = event.submitter || event.target.querySelector('button[type="submit"]');
+  setBusy(submitButton, true, 'Сохраняем...');
   try {
     const payload = buildConstructorPayload();
     const test = await createTestApi(payload);
@@ -156,6 +163,8 @@ async function createTest(event) {
     await loadMyTests();
   } catch (error) {
     el('createMessage').textContent = error.message;
+  } finally {
+    setBusy(submitButton, false);
   }
 }
 
@@ -163,19 +172,35 @@ async function submitLatestTest() {
   if (!state.myTests?.length) return (el('createMessage').textContent = 'Сначала создайте тест.');
   const draft = state.myTests.find((item) => item.status === 'DRAFT');
   if (!draft) return (el('createMessage').textContent = 'У вас нет черновиков для отправки.');
-  const test = await submitTestApi(draft.id);
-  el('createMessage').textContent = `Тест "${test.title}" отправлен на модерацию.`;
-  await loadMyTests();
+  const button = el('submitLatestTestBtn');
+  setBusy(button, true, 'Отправляем...');
+  try {
+    const test = await submitTestApi(draft.id);
+    el('createMessage').textContent = `Тест "${test.title}" отправлен на модерацию.`;
+    await loadMyTests();
+  } catch (error) {
+    el('createMessage').textContent = error.message;
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 async function linkTelegram() {
   if (!state.token) return;
+  const button = el('linkTelegramBtn');
+  setBusy(button, true, 'Готовим код...');
   if (state.telegramLinkTimer) window.clearTimeout(state.telegramLinkTimer);
-  const data = await requestTelegramLinkCode();
-  showTelegramCodeModal(data.code, Math.max(1, data.ttl_seconds));
-  showToast('Telegram', 'Код отображён в отдельном окне.', 5);
-  state.telegramLinkTimer = window.setTimeout(linkTelegram, Math.max(1, data.ttl_seconds) * 1000);
-  await loadProfile();
+  try {
+    const data = await requestTelegramLinkCode();
+    showTelegramCodeModal(data.code, Math.max(1, data.ttl_seconds));
+    showToast('Telegram', 'Код отображён в отдельном окне.', 5);
+    state.telegramLinkTimer = window.setTimeout(linkTelegram, Math.max(1, data.ttl_seconds) * 1000);
+    await loadProfile();
+  } catch (error) {
+    showToast('Telegram', error.message, 8);
+  } finally {
+    setBusy(button, false);
+  }
 }
 
 function bindDashboardScreens() {

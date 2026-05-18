@@ -62,6 +62,8 @@ bot/             Telegram-бот (FSM-сценарии прохождения)
 Рекомендуемые переменные окружения:
 - `DATABASE_URL`
 - `SECRET_KEY`
+- `ENVIRONMENT` (`development` или `production`; в production нельзя использовать dev-secret)
+- `CORS_ORIGINS` (список origin через запятую)
 - `TELEGRAM_BOT_TOKEN`
 - `API_BASE_URL`
 - `TELEGRAM_LINK_CODE_TTL_SECONDS` (по умолчанию 600, допустимо 60..86400)
@@ -88,6 +90,18 @@ python3 -m bot.main
 - `http://localhost:8000/health` — liveness;
 - `http://localhost:8000/health/ready` — readiness (с проверкой БД).
 
+### 3) Демо-данные
+
+```bash
+make seed
+```
+
+Будут созданы базовые предметы, достижения, демо-студент, демо-преподаватель и опубликованный тест.
+
+Демо-аккаунты:
+- `student@skillflow.local` / `Demo12345`
+- `teacher@skillflow.local` / `Demo12345`
+
 ## Запуск через Docker Compose
 
 ```bash
@@ -109,7 +123,20 @@ docker compose up --build
 ## Тестирование
 
 ```bash
-pytest
+make check
+```
+
+Команда запускает:
+- `python3 -m compileall app bot tests`;
+- `alembic upgrade head` на временной SQLite-базе;
+- `node --check` для всех frontend-модулей в `app/static/js`;
+- `pytest -q`.
+
+Frontend lint запускается отдельно, если установлен Node/npm:
+
+```bash
+npm install
+npm run lint
 ```
 
 

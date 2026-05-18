@@ -1,1 +1,5 @@
-/* Reserved for feature/page-specific styles during incremental migration. */
+button:disabled,
+button[aria-busy='true'] {
+  cursor: wait;
+  opacity: 0.68;
+}

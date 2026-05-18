@@ -27,6 +27,7 @@ def test_teacher_rejects_student_profile_fields():
         role=Role.TEACHER,
         faculty="ИнПИТ",
         department="ИКСП",
+        subject_ids=[1],
         study_group="b-1",
     )
 
@@ -86,3 +87,18 @@ def test_teacher_profile_requires_department_and_subjects():
         assert "преподавателя" in str(exc).lower()
     else:
         raise AssertionError("Expected ValueError")
+
+
+def test_user_response_does_not_expose_telegram_link_code():
+    from app.models.enums import Role
+    from app.schemas import UserResponse
+
+    schema = UserResponse(
+        id=1,
+        email="student@example.com",
+        full_name="Student",
+        role=Role.STUDENT,
+        telegram_id=None,
+    )
+
+    assert "telegram_link_code" not in schema.model_dump()

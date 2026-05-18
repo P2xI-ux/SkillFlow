@@ -1,0 +1,15 @@
+{
+  "name": "skillflow-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint app/static/js/**/*.js",
+    "js-check": "find app/static/js -name '*.js' -print -exec node --check {} \\;",
+    "check": "npm run js-check && npm run lint"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "eslint": "^9.27.0",
+    "prettier": "^3.5.3"
+  }
+}

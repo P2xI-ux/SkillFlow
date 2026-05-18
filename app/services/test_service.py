@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 
 from app.models.entities import Test, TestAttempt, User, UserAnswer
-from app.models.enums import AttemptStatus, Role, TestStatus
+from app.models.enums import AttemptStatus, QuestionType, Role, TestStatus
 from app.repositories.achievement_repository import AchievementRepository
 from app.repositories.attempt_repository import AttemptRepository
 from app.repositories.rating_repository import RatingRepository
@@ -98,7 +98,8 @@ class TestService:
 
     @staticmethod
     def _validate_attempt_answers(test, answers: list):
-        question_ids = {q.id for q in test.questions}
+        questions_by_id = {q.id: q for q in test.questions}
+        question_ids = set(questions_by_id)
         provided_ids = [item.question_id for item in answers]
 
         if len(provided_ids) != len(set(provided_ids)):
@@ -112,6 +113,39 @@ class TestService:
         if missing:
             raise ValueError("Не на все вопросы теста предоставлены ответы")
 
+        for answer in answers:
+            question = questions_by_id[answer.question_id]
+            option_ids = {option.id for option in question.answer_options}
+            unknown_options = [
+                option_id
+                for option_id in answer.selected_option_ids
+                if option_id not in option_ids
+            ]
+            if unknown_options:
+                raise ValueError("Ответ содержит варианты, которых нет в вопросе")
+
+            payload = json.loads(question.payload) if question.payload else {}
+            if (
+                question.question_type == QuestionType.SINGLE_CHOICE
+                and len(answer.selected_option_ids) != 1
+            ):
+                raise ValueError("В вопросе с одиночным выбором нужен ровно один ответ")
+            if (
+                question.question_type == QuestionType.TEXT_ANSWER
+                and not (answer.text_answer or "").strip()
+            ):
+                raise ValueError("Текстовый ответ не может быть пустым")
+            if question.question_type == QuestionType.MATCHING:
+                expected_left = {
+                    str(pair["left"]).strip() for pair in payload.get("pairs", [])
+                }
+                provided_left = {
+                    str(left).strip()
+                    for left in (answer.matching_answer or {}).keys()
+                }
+                if expected_left != provided_left:
+                    raise ValueError("Ответ на соответствие заполнен не полностью")
+
     def take_test(
         self, test_id: int, current_user, answers: list, allow_retake: bool = False
     ):
@@ -122,103 +156,107 @@ class TestService:
         if not test or test.status != TestStatus.PUBLISHED:
             raise ValueError("Опубликованный тест не найден")
 
-        # Atomic block starts here
-        try:
-            previous_attempt = (
-                self.attempt_repository.get_completed_by_student_for_test(
-                    current_user.id, test.id
-                )
+        previous_attempt = (
+            self.attempt_repository.get_completed_by_student_for_test_locked(
+                current_user.id, test.id
             )
-            if previous_attempt and not allow_retake:
-                raise ValueError(
-                    "Тест уже был пройден. Повторная попытка требует явного подтверждения."
-                )
-
-            self._validate_attempt_answers(test, answers)
-            answer_map = {item.question_id: item for item in answers}
-            max_score = sum(question.points for question in test.questions)
-
-            attempt = TestAttempt(
-                test_id=test.id,
-                student_id=current_user.id,
-                max_score=max_score,
-                status=AttemptStatus.COMPLETED,
-                completed_at=datetime.utcnow(),
+        )
+        if previous_attempt and not allow_retake:
+            raise ValueError(
+                "Тест уже был пройден. Повторная попытка требует явного подтверждения."
             )
-            self.attempt_repository.save(attempt)
 
-            score = 0.0
-            feedback = []
-            scoring_visitor = ScoringVisitor()
-            for question in sorted(test.questions, key=lambda value: value.sort_order):
-                result = scoring_visitor.score(question, answer_map.get(question.id))
-                score += result.points_earned
-                self.attempt_repository.save(
-                    UserAnswer(
-                        attempt_id=attempt.id,
-                        question_id=question.id,
-                        selected_option_ids=",".join(
-                            str(item) for item in result.selected_option_ids
-                        ),
-                        answer_payload=json.dumps(
-                            result.answer_payload, ensure_ascii=False
-                        )
-                        if result.answer_payload
-                        else None,
-                        is_correct=result.is_correct,
-                        points_earned=result.points_earned,
+        self._validate_attempt_answers(test, answers)
+        answer_map = {item.question_id: item for item in answers}
+        max_score = sum(question.points for question in test.questions)
+
+        attempt = TestAttempt(
+            test_id=test.id,
+            student_id=current_user.id,
+            max_score=max_score,
+            status=AttemptStatus.COMPLETED,
+            completed_at=datetime.utcnow(),
+        )
+        self.attempt_repository.save(attempt)
+
+        score = 0.0
+        feedback = []
+        scoring_visitor = ScoringVisitor()
+        for question in sorted(test.questions, key=lambda value: value.sort_order):
+            result = scoring_visitor.score(question, answer_map.get(question.id))
+            score += result.points_earned
+            self.attempt_repository.save(
+                UserAnswer(
+                    attempt_id=attempt.id,
+                    question_id=question.id,
+                    selected_option_ids=",".join(
+                        str(item) for item in result.selected_option_ids
+                    ),
+                    answer_payload=json.dumps(
+                        result.answer_payload, ensure_ascii=False
                     )
-                )
-                feedback.append(result.as_feedback())
-
-            attempt.score = score
-            strategy = RatingStrategyFactory.build(
-                RatingContext(
-                    score=score,
-                    difficulty=test.difficulty,
-                    is_first_attempt=previous_attempt is None,
-                    is_tournament=False,
+                    if result.answer_payload
+                    else None,
+                    is_correct=result.is_correct,
+                    points_earned=result.points_earned,
                 )
             )
-            rating_delta = (
-                strategy.calculate(score, test.difficulty)
-                if current_user.role == Role.STUDENT
-                else 0
+            feedback.append(result.as_feedback())
+
+        attempt.score = score
+        strategy = RatingStrategyFactory.build(
+            RatingContext(
+                score=score,
+                difficulty=test.difficulty,
+                is_first_attempt=previous_attempt is None,
+                is_tournament=False,
             )
-            if previous_attempt:
-                rating_delta -= previous_attempt.rating_delta
+        )
+        rating_delta = (
+            strategy.calculate(score, test.difficulty)
+            if current_user.role == Role.STUDENT
+            else 0
+        )
+        if previous_attempt:
+            rating_delta -= previous_attempt.rating_delta
 
-            attempt.rating_delta = rating_delta
-            self.attempt_repository.db.flush()
+        attempt.rating_delta = rating_delta
+        self.attempt_repository.db.flush()
 
-            earned = self.event_bus.publish(
-                "TEST_COMPLETED",
-                {
-                    "student_id": current_user.id,
-                    "subject_id": test.subject_id,
-                    "test_id": test.id,
-                    "score": score,
-                    "max_score": max_score,
-                    "difficulty": test.difficulty,
-                    "rating_delta": rating_delta,
-                },
-                service=self,
-            )
-
-            logger.info("attempt_completed", extra={"student_id": current_user.id, "test_id": test.id, "score": score, "max_score": max_score, "rating_delta": rating_delta})
-
-            return {
-                "attempt_id": attempt.id,
+        earned = self.event_bus.publish(
+            "TEST_COMPLETED",
+            {
+                "student_id": current_user.id,
+                "subject_id": test.subject_id,
+                "test_id": test.id,
                 "score": score,
                 "max_score": max_score,
-                "percentage": round((score / max_score) * 100, 2) if max_score else 0,
+                "difficulty": test.difficulty,
                 "rating_delta": rating_delta,
-                "earned_achievements": earned,
-                "feedback": feedback,
-            }
-        except Exception:
-            self.test_repository.db.rollback()
-            raise
+            },
+            service=self,
+        )
+
+        logger.info(
+            "attempt_completed",
+            extra={
+                "student_id": current_user.id,
+                "test_id": test.id,
+                "score": score,
+                "max_score": max_score,
+                "rating_delta": rating_delta,
+            },
+        )
+
+        return {
+            "attempt_id": attempt.id,
+            "score": score,
+            "max_score": max_score,
+            "percentage": round((score / max_score) * 100, 2) if max_score else 0,
+            "rating_delta": rating_delta,
+            "earned_achievements": earned,
+            "feedback": feedback,
+        }
 
     @staticmethod
     def _handle_rating_update(event, service: "TestService"):

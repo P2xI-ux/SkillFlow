@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app.models.entities import Rating
@@ -14,11 +15,28 @@ class RatingRepository(Repository):
         )
         return self.db.scalar(stmt)
 
+    def get_by_student_subject_locked(self, student_id: int, subject_id: int):
+        stmt = (
+            select(Rating)
+            .where(Rating.student_id == student_id, Rating.subject_id == subject_id)
+            .with_for_update()
+        )
+        return self.db.scalar(stmt)
+
     def update_score(self, student_id: int, subject_id: int, delta: float):
-        rating = self.get_by_student_subject(student_id, subject_id)
+        rating = self.get_by_student_subject_locked(student_id, subject_id)
         if not rating:
-            rating = Rating(student_id=student_id, subject_id=subject_id, total_score=0)
-            self.save(rating)
+            try:
+                with self.db.begin_nested():
+                    rating = Rating(
+                        student_id=student_id, subject_id=subject_id, total_score=0
+                    )
+                    self.db.add(rating)
+                    self.db.flush()
+            except IntegrityError:
+                rating = self.get_by_student_subject_locked(student_id, subject_id)
+                if not rating:
+                    raise
         rating.total_score += delta
         rating.last_updated = datetime.utcnow()
         self.db.flush()

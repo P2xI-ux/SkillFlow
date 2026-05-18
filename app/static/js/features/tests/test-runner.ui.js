@@ -13,8 +13,9 @@ export async function openTest(testId, submitAttemptHandler, showDashboardScreen
   showDashboardScreen('runner');
   const questionsHtml = test.questions
     .map(
-      (question) => `
+      (question, index) => `
     <div class="question-block">
+      <p class="helper-text">Вопрос ${index + 1} из ${test.questions.length}</p>
       <strong>${question.text}</strong>
       <p>${question.question_type} · ${question.points} баллов</p>
       ${renderAttemptQuestion(question)}
@@ -22,7 +23,12 @@ export async function openTest(testId, submitAttemptHandler, showDashboardScreen
   `,
     )
     .join('');
-  el('testRunner').innerHTML = `<h3>${test.title}</h3><form id="attemptForm">${questionsHtml}<button class="primary-button" type="submit">Завершить тест</button></form><div id="attemptResult" class="message"></div>`;
+  el('testRunner').innerHTML = `
+    <h3>${test.title}</h3>
+    <p class="helper-text">${allowRetake ? 'Повторная попытка' : 'Новая попытка'} · вопросов: ${test.questions.length}</p>
+    <form id="attemptForm">${questionsHtml}<button class="primary-button" type="submit">Завершить тест</button></form>
+    <div id="attemptResult" class="message"></div>
+  `;
   el('attemptForm').addEventListener('submit', submitAttemptHandler);
 }
 
@@ -51,10 +57,38 @@ export function renderTests(tests, openTestHandler) {
         openTestHandler(button.dataset.openTest, false);
         return;
       }
-      const shouldRetake = window.confirm('Вы уже проходили этот тест. Нажмите "ОК", чтобы начать заново, или "Отмена", чтобы вернуться.');
-      if (shouldRetake) openTestHandler(button.dataset.openTest, true);
+      showRetakeModal(button.dataset.openTest, openTestHandler);
     }),
   );
+}
+
+function showRetakeModal(testId, openTestHandler) {
+  let overlay = el('retakeModalOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'retakeModalOverlay';
+    overlay.className = 'telegram-code-modal-overlay hidden';
+    overlay.innerHTML = `
+      <div class="telegram-code-modal" role="dialog" aria-modal="true" aria-labelledby="retakeModalTitle">
+        <h3 id="retakeModalTitle">Повторное прохождение</h3>
+        <p class="helper-text">Вы уже проходили этот тест. Новая попытка заменит вклад в рейтинг результатом повторного прохождения.</p>
+        <div class="inline-actions">
+          <button id="retakeModalConfirm" class="primary-button compact" type="button">Начать заново</button>
+          <button id="retakeModalCancel" class="soft-button compact" type="button">Отмена</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    el('retakeModalCancel').addEventListener('click', () => overlay.classList.add('hidden'));
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) overlay.classList.add('hidden');
+    });
+  }
+  el('retakeModalConfirm').onclick = () => {
+    overlay.classList.add('hidden');
+    openTestHandler(testId, true);
+  };
+  overlay.classList.remove('hidden');
 }
 
 export function renderMyTests() {

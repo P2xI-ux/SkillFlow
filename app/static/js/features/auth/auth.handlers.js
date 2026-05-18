@@ -4,6 +4,7 @@ import { el, hasElement, queryAll } from '../../core/dom.js';
 import { pageUrls } from '../../shared/constants.js';
 import { loginApi, registerApi } from './auth.api.js';
 import { syncRoleSwitch, updateRoleUI, updateAuthControls } from './auth.ui.js';
+import { setBusy } from '../../core/ui.js';
 
 export async function setSession(data, hooks) {
   state.token = data.access_token;
@@ -33,6 +34,8 @@ export function logout({ redirect = true } = {}, hooks) {
 export async function login(event, hooks) {
   event.preventDefault();
   const form = new FormData(event.target);
+  const submitButton = event.submitter || event.target.querySelector('button[type="submit"]');
+  setBusy(submitButton, true, 'Входим...');
   try {
     const data = await loginApi(Object.fromEntries(form));
     await setSession(data, hooks);
@@ -40,11 +43,15 @@ export async function login(event, hooks) {
     window.location.href = pageUrls.dashboard;
   } catch (error) {
     if (hasElement('authMessage')) el('authMessage').textContent = error.message;
+  } finally {
+    setBusy(submitButton, false);
   }
 }
 
 export async function register(event, hooks) {
   event.preventDefault();
+  const submitButton = event.submitter || event.target.querySelector('button[type="submit"]');
+  setBusy(submitButton, true, 'Создаём...');
   const payload = {
     email: el('registerEmail').value,
     password: el('registerPassword').value,
@@ -65,5 +72,7 @@ export async function register(event, hooks) {
     window.location.href = pageUrls.dashboard;
   } catch (error) {
     if (hasElement('authMessage')) el('authMessage').textContent = error.message;
+  } finally {
+    setBusy(submitButton, false);
   }
 }

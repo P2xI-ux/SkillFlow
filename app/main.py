@@ -4,20 +4,32 @@ import time
 import uuid
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from sqlalchemy import text
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes import router
+from app.core.config import settings
 from app.core.database import Base, SessionLocal, engine
 from app.core.events import event_bus
-from app.models.entities import Achievement, Subject
+from app.core.seed import seed_core_data
 from app.services.test_service import TestService
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="SkillFlow MVP", version="0.1.0")
+if settings.cors_origin_list:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origin_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 app.include_router(router)
 
 static_dir = Path(__file__).parent / "static"
@@ -27,8 +39,22 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next):
     request_id = request.headers.get("x-request-id", str(uuid.uuid4()))
+    request.state.request_id = request_id
     started = time.perf_counter()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = round((time.perf_counter() - started) * 1000, 2)
+        logger.exception(
+            "http_request_failed",
+            extra={
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "duration_ms": duration_ms,
+            },
+        )
+        raise
     duration_ms = round((time.perf_counter() - started) * 1000, 2)
     response.headers["X-Request-Id"] = request_id
     logger.info(
@@ -42,6 +68,41 @@ async def request_logging_middleware(request: Request, call_next):
         },
     )
     return response
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    detail = exc.detail
+    if isinstance(detail, dict):
+        code = detail.get("code", "HTTP_ERROR")
+        message = detail.get("message", str(detail))
+    else:
+        code = "HTTP_ERROR"
+        message = str(detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"code": code, "message": message, "request_id": request_id},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(
+    request: Request, exc: RequestValidationError
+):
+    request_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    messages = []
+    for error in exc.errors():
+        location = ".".join(str(item) for item in error.get("loc", []))
+        messages.append(f"{location}: {error.get('msg')}")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "code": "REQUEST_VALIDATION_ERROR",
+            "message": "; ".join(messages) or "Некорректные данные запроса",
+            "request_id": request_id,
+        },
+    )
 
 
 @app.on_event("startup")
@@ -92,24 +153,6 @@ def health_ready():
 def seed_data():
     db = SessionLocal()
     try:
-        subjects = [
-            ("Программирование", "PROG"),
-            ("Математика", "MATH"),
-            ("Физика", "PHYS"),
-        ]
-        for name, code in subjects:
-            if not db.query(Subject).filter(Subject.code == code).first():
-                db.add(Subject(name=name, code=code))
-        achievements = [
-            ("FIRST_TEST", "Первый тест", "Пройти хотя бы один тест"),
-            ("STREAK_3", "Серия побед", "Три идеальных результата подряд"),
-            ("SUBJECT_MASTER", "Эксперт предмета", "Попасть в топ-3 предмета"),
-            ("TEST_CREATOR", "Создатель", "Опубликовать первый тест"),
-            ("PERFECT_SCORE", "Идеальный результат", "Пройти тест без ошибок"),
-        ]
-        for code, name, description in achievements:
-            if not db.query(Achievement).filter(Achievement.code == code).first():
-                db.add(Achievement(code=code, name=name, description=description))
-        db.commit()
+        seed_core_data(db)
     finally:
         db.close()

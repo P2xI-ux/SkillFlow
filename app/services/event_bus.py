@@ -22,6 +22,8 @@ class EventBus:
         )
 
     def subscribe(self, event_name: str, handler: Callable[[Event], list[str] | None]):
+        if handler in self._subscribers[event_name]:
+            return
         self._subscribers[event_name].append(handler)
 
     def publish(self, event_name: str, payload: dict, **kwargs) -> list[str]:

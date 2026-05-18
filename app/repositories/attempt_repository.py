@@ -36,3 +36,16 @@ class AttemptRepository(Repository):
             .order_by(TestAttempt.completed_at.desc())
         )
         return self.db.scalars(stmt).first()
+
+    def get_completed_by_student_for_test_locked(self, student_id: int, test_id: int):
+        stmt = (
+            select(TestAttempt)
+            .where(
+                TestAttempt.student_id == student_id,
+                TestAttempt.test_id == test_id,
+                TestAttempt.status == AttemptStatus.COMPLETED,
+            )
+            .order_by(TestAttempt.completed_at.desc())
+            .with_for_update()
+        )
+        return self.db.scalars(stmt).first()

@@ -42,7 +42,9 @@ class User(Base):
     department: Mapped[str] = mapped_column(String(120), nullable=True)
     program_code: Mapped[str] = mapped_column(String(32), nullable=True)
     telegram_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=True)
-    telegram_link_code: Mapped[str] = mapped_column(String(6), nullable=True)
+    telegram_link_code: Mapped[str] = mapped_column(
+        String(6), unique=True, nullable=True
+    )
     telegram_link_code_created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=True
     )

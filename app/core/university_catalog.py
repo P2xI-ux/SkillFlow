@@ -269,7 +269,7 @@ def validate_teacher_profile(
 
     if institute_short_name and institute_short_name != actual_institute:
         raise ValueError(
-            f"Кафедра {department_code} относится к {actual_institute}, а не к {institute_short_name}"
+            f"Кафедра {department_code} не относится к {institute_short_name}; она относится к {actual_institute}"
         )
 
     return actual_institute
@@ -287,7 +287,7 @@ def validate_student_profile(
 
     if institute_short_name and institute_short_name != actual_institute:
         raise ValueError(
-            f"Направление {program_code} относится к {actual_institute}, а не к {institute_short_name}"
+            f"Направление {program_code} не относится к {institute_short_name}; оно относится к {actual_institute}"
         )
 
     return actual_institute

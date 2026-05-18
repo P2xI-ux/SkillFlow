@@ -66,7 +66,6 @@ class UserResponse(BaseModel):
     department: str | None = None
     program_code: str | None = None
     telegram_id: str | None = None
-    telegram_link_code: str | None = None
     teaching_subjects: list["SubjectResponse"] = Field(default_factory=list)
 
     class Config:
@@ -201,7 +200,7 @@ class AttemptSubmission(BaseModel):
 class AttemptFeedbackItem(BaseModel):
     question_id: int
     is_correct: bool
-    points_earned: int
+    points_earned: float
     selected_option_ids: list[int]
     correct_option_ids: list[int]
     text_answer: str | None = None
@@ -210,17 +209,17 @@ class AttemptFeedbackItem(BaseModel):
 
 class AttemptResult(BaseModel):
     attempt_id: int
-    score: int
-    max_score: int
+    score: float
+    max_score: float
     percentage: float
-    rating_delta: int
+    rating_delta: float
     earned_achievements: list[str]
     feedback: list[AttemptFeedbackItem]
 
 
 class RatingEntry(BaseModel):
     student_name: str
-    total_score: int
+    total_score: float
     position: int
     subject_name: str
 
@@ -235,8 +234,8 @@ class AchievementResponse(BaseModel):
 class StatsResponse(BaseModel):
     tests_completed: int
     average_score_percent: float
-    rating_total: int
-    subject_breakdown: dict[str, int]
+    rating_total: float
+    subject_breakdown: dict[str, float]
     latest_attempts: list[dict]
 
 
@@ -249,6 +248,11 @@ class TelegramLinkResponse(BaseModel):
 class TelegramConnectRequest(BaseModel):
     code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
     telegram_id: str = Field(min_length=3, max_length=64)
+
+
+class ErrorResponse(BaseModel):
+    code: str
+    message: str
 
 
 TokenResponse.model_rebuild()
