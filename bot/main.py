@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 import httpx
+from aiohttp import ClientError
 from aiogram import Bot, Dispatcher, F
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import Command
@@ -15,6 +16,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
+from aiohttp_socks import ProxyConnectionError
 
 from app.core.config import settings
 from app.services.telegram_adapter import TelegramAdapter
@@ -46,6 +48,23 @@ state_storage = _RetakeStateStorage()
 class TestPassStates(StatesGroup):
     answering = State()
     confirm_retake = State()
+
+
+def extract_api_error(exc: httpx.HTTPStatusError) -> str:
+    try:
+        data = exc.response.json()
+    except Exception:
+        return exc.response.text or "Неизвестная ошибка"
+    if isinstance(data, dict):
+        if isinstance(data.get("detail"), dict):
+            return (
+                data["detail"].get("message")
+                or data["detail"].get("code")
+                or "Неизвестная ошибка"
+            )
+        message = data.get("message") or data.get("detail") or data.get("code")
+        return str(message) if message else "Неизвестная ошибка"
+    return str(data) if data else "Неизвестная ошибка"
 
 
 async def start(message: Message):
@@ -120,6 +139,7 @@ async def open_test(message: Message):
     telegram_id = str(message.from_user.id)
     try:
         test = await adapter.fetch_test_detail(test_id, telegram_id)
+        tests_list = await adapter.fetch_tests(telegram_id)
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 401:
             await message.answer(
@@ -132,6 +152,9 @@ async def open_test(message: Message):
             await message.answer("❓ Тест не найден или у вас нет к нему доступа.")
         return
 
+    already_attempted = any(
+        item.get("id") == test_id and item.get("attempted") for item in tests_list
+    )
     msg = (
         f"🎯 <b>{test['title']}</b>\n\n"
         f"📝 {test['description'] or 'Без описания'}\n\n"
@@ -144,7 +167,10 @@ async def open_test(message: Message):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="🚀 Начать прохождение", callback_data=f"test:start:{test_id}"
+                    text="🔁 Пройти повторно" if already_attempted else "🚀 Начать прохождение",
+                    callback_data=(
+                        f"test:{'retake' if already_attempted else 'start'}:{test_id}"
+                    ),
                 )
             ],
         ]
@@ -162,14 +188,43 @@ async def test_start_callback(callback_query: CallbackQuery, state: FSMContext):
         await callback_query.answer("❌ Ошибка доступа к тесту", show_alert=True)
         return
 
+    if action == "retake":
+        await state_storage.set_pending_retake(
+            callback_query.from_user.id, int(test_id), test["questions"]
+        )
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="Да, начать заново",
+                        callback_data=f"test:confirm_retake:{test_id}",
+                    ),
+                    InlineKeyboardButton(
+                        text="Отмена", callback_data="test:cancel_retake:0"
+                    ),
+                ]
+            ]
+        )
+        await callback_query.message.answer(
+            f"⚠️ <b>Повторное прохождение</b>\n\n"
+            f"Тест: <b>{test['title']}</b>\n"
+            "Новая попытка пересчитает ваш вклад в рейтинг по этому тесту.",
+            reply_markup=keyboard,
+            parse_mode="HTML",
+        )
+        await callback_query.answer()
+        return
+
     await state.set_state(TestPassStates.answering)
     await state.update_data(
         test_id=int(test_id),
+        telegram_id=telegram_id,
         questions=test["questions"],
         current_index=0,
         user_answers=[],
         current_selection=[],  # For multiple choice
         matching_state={},  # For matching
+        allow_retake=False,
     )
 
     await send_question(
@@ -259,13 +314,9 @@ async def send_question(
         InlineKeyboardMarkup(inline_keyboard=keyboard_btns) if keyboard_btns else None
     )
 
-    if message.edit_text:
-        try:
-            await message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
-        except Exception:
-            # If message is identical, aiogram might throw error
-            pass
-    else:
+    try:
+        await message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception:
         await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
@@ -400,7 +451,7 @@ async def process_next_question(message: Message, state: FSMContext, last_answer
         status_msg = await message.answer(
             "⌛ <b>Тест завершен.</b> Отправляем результаты в систему..."
         )
-        telegram_id = str(message.chat.id)
+        telegram_id = data.get("telegram_id", str(message.chat.id))
         try:
             result = await adapter.submit_attempt(
                 data["test_id"], telegram_id, user_answers, allow_retake=data.get("allow_retake", False)
@@ -422,11 +473,7 @@ async def process_next_question(message: Message, state: FSMContext, last_answer
 
             await status_msg.edit_text(report, parse_mode="HTML")
         except httpx.HTTPStatusError as exc:
-            try:
-                error_data = exc.response.json()
-                error_msg = error_data.get("detail", "Неизвестная ошибка")
-            except Exception:
-                error_msg = exc.response.text or "Неизвестная ошибка"
+            error_msg = extract_api_error(exc)
 
             await status_msg.edit_text(
                 f"❌ <b>Ошибка при отправке:</b>\n{error_msg}", parse_mode="HTML"
@@ -564,13 +611,52 @@ async def confirm_retake(message: Message, state: FSMContext):
         await message.answer("ℹ️ Нет ожидающего ретейка.")
         return
     await state.set_state(TestPassStates.answering)
-    await state.update_data(test_id=pending["test_id"], questions=pending["questions"], current_index=0, user_answers=[], current_selection=[], matching_state={}, allow_retake=True)
+    await state.update_data(
+        test_id=pending["test_id"],
+        telegram_id=str(message.from_user.id),
+        questions=pending["questions"],
+        current_index=0,
+        user_answers=[],
+        current_selection=[],
+        matching_state={},
+        allow_retake=True,
+    )
     await send_question(message, pending["questions"][0], 0, len(pending["questions"]), state)
 
 
 async def cancel_retake(message: Message):
     await state_storage.pop_pending_retake(message.from_user.id)
     await message.answer("Ок, повторное прохождение отменено.")
+
+
+async def confirm_retake_callback(callback_query: CallbackQuery, state: FSMContext):
+    pending = await state_storage.pop_pending_retake(callback_query.from_user.id)
+    if not pending:
+        await callback_query.answer(
+            "Нет ожидающего повторного прохождения", show_alert=True
+        )
+        return
+    await state.set_state(TestPassStates.answering)
+    await state.update_data(
+        test_id=pending["test_id"],
+        telegram_id=str(callback_query.from_user.id),
+        questions=pending["questions"],
+        current_index=0,
+        user_answers=[],
+        current_selection=[],
+        matching_state={},
+        allow_retake=True,
+    )
+    await send_question(
+        callback_query.message, pending["questions"][0], 0, len(pending["questions"]), state
+    )
+    await callback_query.answer()
+
+
+async def cancel_retake_callback(callback_query: CallbackQuery):
+    await state_storage.pop_pending_retake(callback_query.from_user.id)
+    await callback_query.message.edit_text("Ок, повторное прохождение отменено.")
+    await callback_query.answer()
 
 
 async def main():
@@ -593,6 +679,13 @@ async def main():
     dp.message.register(cancel_retake, Command("cancel"))
 
     dp.callback_query.register(test_start_callback, F.data.startswith("test:start:"))
+    dp.callback_query.register(test_start_callback, F.data.startswith("test:retake:"))
+    dp.callback_query.register(
+        confirm_retake_callback, F.data.startswith("test:confirm_retake:")
+    )
+    dp.callback_query.register(
+        cancel_retake_callback, F.data.startswith("test:cancel_retake:")
+    )
     dp.callback_query.register(
         handle_answer_callback, TestPassStates.answering, F.data.startswith("ans:")
     )
@@ -604,7 +697,12 @@ async def main():
         "🤖 SkillFlow Bot started..."
         + (" Telegram proxy is enabled." if TELEGRAM_PROXY_URL else " Telegram proxy is disabled.")
     )
-    await dp.start_polling(bot)
+    while True:
+        try:
+            await dp.start_polling(bot)
+        except (ClientError, ProxyConnectionError, OSError, asyncio.TimeoutError) as exc:
+            print(f"Telegram connection failed: {exc}. Retrying in 15 seconds...")
+            await asyncio.sleep(15)
 
 
 if __name__ == "__main__":

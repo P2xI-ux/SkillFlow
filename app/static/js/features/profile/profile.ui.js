@@ -61,7 +61,7 @@ export function toggleRoleWidgets() {
   const role = state.currentUser?.role;
   queryAll('.student-only').forEach((item) => item.classList.toggle('hidden-by-role', role !== 'STUDENT'));
   queryAll('.teacher-only').forEach((item) => item.classList.toggle('hidden-by-role', role !== 'TEACHER'));
-  const studentScreens = new Set(['builder', 'runner', 'stats']);
+  const studentScreens = new Set(['builder', 'runner', 'stats', 'myTests']);
   const teacherScreens = new Set(['moderation', 'teacherStats']);
   if ((role !== 'STUDENT' && studentScreens.has(state.currentScreen)) || (role !== 'TEACHER' && teacherScreens.has(state.currentScreen))) {
     showDashboardScreen('profile');

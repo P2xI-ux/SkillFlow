@@ -49,7 +49,7 @@
         <button class="tab student-only" type="button" data-dashboard-target="stats">Статистика</button>
         <button class="tab teacher-only" type="button" data-dashboard-target="moderation">Модерация</button>
         <button class="tab teacher-only" type="button" data-dashboard-target="teacherStats">Аналитика</button>
-        <button class="tab" type="button" data-dashboard-target="myTests">Мои тесты</button>
+        <button class="tab student-only" type="button" data-dashboard-target="myTests">Мои тесты</button>
       </nav>
       <section class="dashboard-grid">
         <article class="neumorph-panel dashboard-sidebar dashboard-screen" data-dashboard-screen="profile">
@@ -77,6 +77,7 @@
                 <button id="loadPendingBtn" class="soft-button compact" type="button">Обновить</button>
               </div>
               <div id="pendingList" class="list empty-state">Очередь модерации пуста.</div>
+              <div id="pendingPreview" class="test-preview empty-state">Выберите тест из очереди, чтобы посмотреть вопросы.</div>
             </section>
 
             <section class="neumorph-panel widget-card teacher-only dashboard-screen is-hidden" data-dashboard-screen="teacherStats">
@@ -98,6 +99,16 @@
                 <div class="field-group">
                   <label for="subjectSelect">Дисциплина</label>
                   <select name="subject_id" id="subjectSelect" required></select>
+                </div>
+                <div class="field-group">
+                  <label for="testDifficultySelect">Сложность теста</label>
+                  <select name="difficulty" id="testDifficultySelect">
+                    <option value="1">1 — базовая</option>
+                    <option value="2">2 — лёгкая</option>
+                    <option value="3" selected>3 — средняя</option>
+                    <option value="4">4 — сложная</option>
+                    <option value="5">5 — продвинутая</option>
+                  </select>
                 </div>
                 <div class="constructor-toolbar">
                   <button id="addQuestionBtn" class="soft-button" type="button">Добавить вопрос</button>
@@ -129,9 +140,10 @@
               <div id="achievementsList" class="list"></div>
             </section>
 
-            <section class="neumorph-panel widget-card dashboard-screen is-hidden" data-dashboard-screen="myTests">
-              <div class="section-title compact-title"><div><p class="eyebrow">Общее</p><h3>Мои тесты</h3></div></div>
+            <section class="neumorph-panel widget-card student-only dashboard-screen is-hidden" data-dashboard-screen="myTests">
+              <div class="section-title compact-title"><div><p class="eyebrow">Студент</p><h3>Мои тесты</h3></div></div>
               <div id="myTestsList" class="list empty-state">Созданные тесты появятся здесь.</div>
+              <div id="myTestPreview" class="test-preview empty-state">Откройте черновик или отправленный тест, чтобы посмотреть содержимое.</div>
             </section>
           </div>
         </article>

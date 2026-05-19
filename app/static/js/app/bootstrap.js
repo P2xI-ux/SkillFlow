@@ -129,7 +129,7 @@ async function loadAchievements() {
 }
 
 async function loadMyTests() {
-  if (!state.token) return;
+  if (!state.token || state.currentUser?.role !== 'STUDENT') return;
   state.myTests = await fetchMyTests();
   renderMyTests();
 }
@@ -142,7 +142,12 @@ async function loadPrivateData() {
 
 async function moderate(testId, action) {
   try {
-    await moderateTest(testId, action);
+    const comment = action === 'reject' ? window.prompt('Комментарий для автора теста') : 'Публикуем.';
+    if (action === 'reject' && !comment?.trim()) {
+      showToast('Модерация', 'Для отклонения нужен комментарий.', 6);
+      return;
+    }
+    await moderateTest(testId, action, comment);
     await loadPendingTests(moderate);
     await loadPublicData();
   } catch (error) {

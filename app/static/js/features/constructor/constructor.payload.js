@@ -32,7 +32,7 @@ export function buildConstructorPayload() {
     title: el('testTitleInput').value.trim(),
     description: el('testDescriptionInput').value.trim(),
     subject_id: Number(el('subjectSelect').value),
-    difficulty: 3,
+    difficulty: Number(el('testDifficultySelect')?.value || 3),
     questions,
   };
 }

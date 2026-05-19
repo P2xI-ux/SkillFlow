@@ -1,7 +1,7 @@
 import { state } from '../../core/state.js';
 import { el, hasElement, queryAll } from '../../core/dom.js';
 import { pageUrls } from '../../shared/constants.js';
-import { renderAttemptQuestion } from '../../shared/templates.js';
+import { renderAttemptQuestion, renderTestPreview, statusLabel } from '../../shared/templates.js';
 import { fetchTestById } from './tests.api.js';
 
 export async function openTest(testId, submitAttemptHandler, showDashboardScreen, allowRetake = false) {
@@ -41,11 +41,15 @@ export function renderTests(tests, openTestHandler) {
   el('testsList').innerHTML = tests
     .map(
       (test) => `
-    <article class="list-item">
-      <strong>${test.title}</strong>
-      <p>${test.description || 'Без описания'}</p>
-      <p>${test.subject_name} · сложность ${test.difficulty}</p>
-      <button class="primary-button compact" type="button" data-open-test="${test.id}" data-test-attempted="${test.attempted ? '1' : '0'}">Открыть</button>
+    <article class="list-item test-list-item">
+      <div>
+        <strong>${test.title}</strong>
+        <p>${test.description || 'Без описания'}</p>
+        <p>${test.subject_name} · сложность ${test.difficulty} · вопросов: ${test.question_count}</p>
+      </div>
+      <button class="primary-button compact" type="button" data-open-test="${test.id}" data-test-attempted="${test.attempted ? '1' : '0'}">
+        ${test.attempted ? 'Повторить' : 'Открыть'}
+      </button>
     </article>
   `,
     )
@@ -93,8 +97,34 @@ function showRetakeModal(testId, openTestHandler) {
 
 export function renderMyTests() {
   if (!hasElement('myTestsList')) return;
-  if (!state.myTests.length) return (el('myTestsList').innerHTML = 'Созданные тесты появятся здесь.');
+  if (state.currentUser?.role !== 'STUDENT') return;
+  if (!state.myTests.length) {
+    el('myTestsList').innerHTML = '<div class="empty-state">Созданные тесты появятся здесь.</div>';
+    if (hasElement('myTestPreview')) el('myTestPreview').innerHTML = 'Черновики и отправленные тесты можно будет открыть здесь.';
+    return;
+  }
   el('myTestsList').innerHTML = state.myTests
-    .map((item) => `<article class="list-item"><strong>${item.title}</strong><p>${item.subject_name}</p><p>Статус: ${item.status}</p></article>`)
+    .map(
+      (item) => `
+        <article class="list-item test-list-item">
+          <div>
+            <strong>${item.title}</strong>
+            <p>${item.subject_name} · вопросов: ${item.question_count}</p>
+            <span class="status-badge status-${item.status.toLowerCase()}">${statusLabel(item.status)}</span>
+          </div>
+          <button class="soft-button compact" type="button" data-view-my-test="${item.id}">Содержимое</button>
+        </article>
+      `,
+    )
     .join('');
+  queryAll('[data-view-my-test]').forEach((button) => button.addEventListener('click', () => renderMyTestPreview(button.dataset.viewMyTest)));
+}
+
+async function renderMyTestPreview(testId) {
+  if (!hasElement('myTestPreview')) return;
+  el('myTestPreview').className = 'test-preview empty-state';
+  el('myTestPreview').innerHTML = 'Загружаем содержимое теста...';
+  const test = await fetchTestById(testId);
+  el('myTestPreview').className = 'test-preview';
+  el('myTestPreview').innerHTML = renderTestPreview(test);
 }
