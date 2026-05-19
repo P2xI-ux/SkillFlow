@@ -21,7 +21,7 @@ from app.services.telegram_adapter import TelegramAdapter
 
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", settings.telegram_bot_token)
 API_BASE_URL = os.getenv("API_BASE_URL", settings.api_base_url)
-TELEGRAM_PROXY_URL = os.getenv("TELEGRAM_PROXY_URL")
+TELEGRAM_PROXY_URL = (os.getenv("TELEGRAM_PROXY_URL") or "").strip()
 
 session = (
     AiohttpSession(proxy=TELEGRAM_PROXY_URL) if TELEGRAM_PROXY_URL else AiohttpSession()
@@ -600,7 +600,10 @@ async def main():
 
     bot = Bot(token=BOT_TOKEN, session=session)
 
-    print("🤖 SkillFlow Bot started...")
+    print(
+        "🤖 SkillFlow Bot started..."
+        + (" Telegram proxy is enabled." if TELEGRAM_PROXY_URL else " Telegram proxy is disabled.")
+    )
     await dp.start_polling(bot)
 
 

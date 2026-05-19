@@ -45,7 +45,7 @@ services:
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       API_BASE_URL: http://app:8000
-      TELEGRAM_PROXY_URL: ${TELEGRAM_PROXY_URL:-socks5://host.docker.internal:10808}
+      TELEGRAM_PROXY_URL: ${TELEGRAM_PROXY_URL:-}
     volumes:
       - ./:/code
     working_dir: /code
