@@ -14,3 +14,5 @@ psycopg2-binary==2.9.11
 alembic==1.15.1
 aiohttp-socks==0.11.0
 email-validator==2.2.0
+arq==0.26.1
+redis==5.0.8

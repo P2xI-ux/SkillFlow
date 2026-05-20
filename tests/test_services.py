@@ -207,3 +207,54 @@ def test_teacher_cannot_create_test():
         assert "только студент" in str(exc)
     else:
         raise AssertionError("Expected ValueError")
+
+
+def test_notification_subscriber_handles_events(monkeypatch):
+    from app.services.notification_subscriber import handle_test_published, handle_test_completed
+    from app.services.event_bus import Event
+
+    enqueued_jobs = []
+
+    def mock_enqueue(telegram_id, message):
+        enqueued_jobs.append((telegram_id, message))
+
+    monkeypatch.setattr("app.services.notification_subscriber.enqueue_notification", mock_enqueue)
+
+    class MockUser:
+        def __init__(self, telegram_id):
+            self.telegram_id = telegram_id
+
+    class MockUserRepo:
+        def __init__(self, db):
+            pass
+        def get_by_id(self, entity_class, user_id):
+            if user_id == 42:
+                return MockUser("123456789")
+            return None
+
+    class MockSession:
+        def close(self):
+            pass
+
+    monkeypatch.setattr("app.services.notification_subscriber.SessionLocal", lambda: MockSession())
+    monkeypatch.setattr("app.services.notification_subscriber.UserRepository", MockUserRepo)
+
+    event_pub = Event(name="TEST_PUBLISHED", payload={"student_id": 42})
+    handle_test_published(event_pub)
+
+    assert len(enqueued_jobs) == 1
+    assert enqueued_jobs[0][0] == "123456789"
+    assert "опубликован" in enqueued_jobs[0][1]
+
+    event_comp = Event(name="TEST_COMPLETED", payload={
+        "student_id": 42,
+        "score": 8,
+        "max_score": 10,
+        "rating_delta": 15
+    })
+    handle_test_completed(event_comp)
+
+    assert len(enqueued_jobs) == 2
+    assert enqueued_jobs[1][0] == "123456789"
+    assert "рейтинга: +15" in enqueued_jobs[1][1]
+

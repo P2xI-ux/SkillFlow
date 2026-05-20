@@ -11,6 +11,8 @@ class TelegramAdapter:
 
     def _get_headers(self, telegram_id: str | None = None) -> dict:
         headers = {"X-Bot-Token": self.bot_token}
+        if settings.internal_service_token:
+            headers["X-Service-Token"] = settings.internal_service_token
         if telegram_id:
             headers["X-Telegram-Id"] = str(telegram_id)
         return headers

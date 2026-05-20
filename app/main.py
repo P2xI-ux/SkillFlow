@@ -106,11 +106,22 @@ async def request_validation_exception_handler(
 
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     Base.metadata.create_all(bind=engine)
     seed_data()
     setup_event_handlers()
+    from app.services.notification_subscriber import init_arq_pool, setup_notification_subscriptions
+    setup_notification_subscriptions()
+    await init_arq_pool()
     logger.info("startup_completed")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    from app.services.notification_subscriber import close_arq_pool
+    await close_arq_pool()
+    logger.info("shutdown_completed")
+
 
 
 def setup_event_handlers():
