@@ -44,6 +44,13 @@ def test_full_test_lifecycle_and_retake_policy():
     try:
         with Session() as db:
             subject_id = db.query(Subject).filter(Subject.code == "PROG").one().id
+            from app.models.entities import Faculty, Department, Program
+            faculty = db.query(Faculty).filter(Faculty.short_name == "ИнПИТ").one()
+            dept = db.query(Department).filter(Department.code == "ИКСП").one()
+            prog = db.query(Program).filter(Program.code == "09.03.01").one()
+            faculty_id = faculty.id
+            department_id = dept.id
+            program_id = prog.id
 
         student = _register(
             client,
@@ -52,10 +59,10 @@ def test_full_test_lifecycle_and_retake_policy():
                 "password": "Strong123",
                 "full_name": "Student",
                 "role": "STUDENT",
-                "faculty": "ИнПИТ",
+                "faculty_id": faculty_id,
                 "study_group": "B-1",
-                "course": 2,
-                "program_code": "09.03.01",
+                "admission_year": 2024,
+                "program_id": program_id,
             },
         )
         teacher = _register(
@@ -65,8 +72,8 @@ def test_full_test_lifecycle_and_retake_policy():
                 "password": "Strong123",
                 "full_name": "Teacher",
                 "role": "TEACHER",
-                "faculty": "ИнПИТ",
-                "department": "ИКСП",
+                "faculty_id": faculty_id,
+                "department_id": department_id,
                 "subject_ids": [subject_id],
             },
         )
@@ -142,6 +149,13 @@ def test_full_test_lifecycle_and_retake_policy():
 def test_telegram_link_code_expiry_uses_structured_error():
     client, Session = _client()
     try:
+        with Session() as db:
+            from app.models.entities import Faculty, Program
+            faculty = db.query(Faculty).filter(Faculty.short_name == "ИнПИТ").one()
+            prog = db.query(Program).filter(Program.code == "09.03.01").one()
+            faculty_id = faculty.id
+            program_id = prog.id
+
         student = _register(
             client,
             {
@@ -149,10 +163,10 @@ def test_telegram_link_code_expiry_uses_structured_error():
                 "password": "Strong123",
                 "full_name": "Telegram Student",
                 "role": "STUDENT",
-                "faculty": "ИнПИТ",
+                "faculty_id": faculty_id,
                 "study_group": "B-2",
-                "course": 3,
-                "program_code": "09.03.01",
+                "admission_year": 2023,
+                "program_id": program_id,
             },
         )
         headers = {"Authorization": f"Bearer {student['access_token']}"}

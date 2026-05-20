@@ -54,8 +54,8 @@ async function loadSubjectsData() {
 
 function syncInstituteDependentFields() {
   if (!hasElement('registerFaculty')) return;
-  const instituteCode = el('registerFaculty').value;
-  const institute = state.universityCatalog.find((item) => item.short_name === instituteCode);
+  const instituteId = Number(el('registerFaculty').value);
+  const institute = state.universityCatalog.find((item) => item.id === instituteId);
 
   if (hasElement('registerProgramRadios')) {
     const programs = institute?.programs || [];
@@ -63,7 +63,7 @@ function syncInstituteDependentFields() {
       ? programs
           .map(
             (item, index) =>
-              `<div class="choice-item"><label><input type="radio" name="programCode" value="${item.code}" ${index === 0 ? 'checked' : ''}> ${item.code} — ${item.name}</label></div>`,
+              `<div class="choice-item"><label><input type="radio" name="programId" value="${item.id}" ${index === 0 ? 'checked' : ''}> ${item.code} — ${item.name}</label></div>`,
           )
           .join('')
       : '<div class="empty-state">Нет программ</div>';
@@ -75,7 +75,7 @@ function syncInstituteDependentFields() {
       ? departments
           .map(
             (item, index) =>
-              `<div class="choice-item"><label><input type="radio" name="departmentCode" value="${item.code}" ${index === 0 ? 'checked' : ''}> ${item.code} — ${item.name}</label></div>`,
+              `<div class="choice-item"><label><input type="radio" name="departmentId" value="${item.id}" ${index === 0 ? 'checked' : ''}> ${item.code} — ${item.name}</label></div>`,
           )
           .join('')
       : '<div class="empty-state">Нет кафедр</div>';
@@ -93,7 +93,7 @@ async function loadUniversityCatalogData() {
   state.universityCatalog = await fetchUniversityCatalog();
 
   if (hasElement('registerFaculty')) {
-    el('registerFaculty').innerHTML = state.universityCatalog.map((item) => `<option value="${item.short_name}">${item.short_name}</option>`).join('');
+    el('registerFaculty').innerHTML = state.universityCatalog.map((item) => `<option value="${item.id}">${item.short_name}</option>`).join('');
     el('registerFaculty').addEventListener('change', syncInstituteDependentFields);
     syncInstituteDependentFields();
   }

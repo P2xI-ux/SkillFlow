@@ -25,14 +25,29 @@ def test_teacher_rejects_student_profile_fields():
         password="Strong123",
         full_name="Teacher",
         role=Role.TEACHER,
-        faculty="ИнПИТ",
-        department="ИКСП",
+        faculty_id=1,
+        department_id=1,
         subject_ids=[1],
         study_group="b-1",
     )
 
+    class MockDepartment:
+        id = 1
+        code = "ИКСП"
+        faculty_id = 1
+
+    class MockSubject:
+        id = 1
+
     class _Repo:
-        db = type("DB", (), {"scalars": lambda self, *_: type("R", (), {"all": lambda self: []})()})()
+        db = type(
+            "DB",
+            (),
+            {
+                "scalar": lambda self, *_: MockDepartment(),
+                "scalars": lambda self, *_: type("R", (), {"all": lambda self: [MockSubject()]})()
+            }
+        )()
         def get_by_email(self, *_):
             return None
         def save(self, *_):
@@ -58,10 +73,10 @@ def test_student_profile_requires_group_course_program():
             password="Strong123",
             full_name="Student",
             role=Role.STUDENT,
-            faculty="ИнПИТ",
+            faculty_id=1,
             study_group="",
-            course=0,
-            program_code="",
+            admission_year=None,
+            program_id=None,
         )
     except ValueError as exc:
         assert "студента" in str(exc).lower()
@@ -79,8 +94,8 @@ def test_teacher_profile_requires_department_and_subjects():
             password="Strong123",
             full_name="Teacher",
             role=Role.TEACHER,
-            faculty="ИнПИТ",
-            department="",
+            faculty_id=1,
+            department_id=None,
             subject_ids=[],
         )
     except ValueError as exc:

@@ -57,11 +57,11 @@ export async function register(event, hooks) {
     password: el('registerPassword').value,
     full_name: el('registerName').value,
     role: state.currentRole,
-    faculty: el('registerFaculty').value || null,
+    faculty_id: el('registerFaculty').value ? Number(el('registerFaculty').value) : null,
     study_group: state.currentRole === 'STUDENT' ? el('registerGroup').value || null : null,
-    course: state.currentRole === 'STUDENT' && el('registerCourse').value ? Number(el('registerCourse').value) : null,
-    department: state.currentRole === 'TEACHER' ? document.querySelector('input[name="departmentCode"]:checked')?.value || null : null,
-    program_code: state.currentRole === 'STUDENT' ? document.querySelector('input[name="programCode"]:checked')?.value || null : null,
+    admission_year: state.currentRole === 'STUDENT' && el('registerAdmissionYear').value ? Number(el('registerAdmissionYear').value) : null,
+    department_id: state.currentRole === 'TEACHER' ? Number(document.querySelector('input[name="departmentId"]:checked')?.value) || null : null,
+    program_id: state.currentRole === 'STUDENT' ? Number(document.querySelector('input[name="programId"]:checked')?.value) || null : null,
     subject_ids: queryAll('[data-teacher-subject]:checked').map((input) => Number(input.value)),
   };
 

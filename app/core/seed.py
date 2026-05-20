@@ -21,6 +21,9 @@ DEFAULT_ACHIEVEMENTS = [
 
 
 def seed_core_data(db):
+    from app.core.university_catalog import seed_university_catalog
+    seed_university_catalog(db)
+
     for name, code in DEFAULT_SUBJECTS:
         if not db.query(Subject).filter(Subject.code == code).first():
             db.add(Subject(name=name, code=code))
@@ -34,23 +37,28 @@ def seed_demo_data(db):
     seed_core_data(db)
     subject = db.query(Subject).filter(Subject.code == "PROG").first()
 
+    from app.models.entities import Faculty, Department, Program
+    faculty = db.query(Faculty).filter(Faculty.short_name == "ИнПИТ").first()
+    department = db.query(Department).filter(Department.code == "ИКСП").first()
+    program = db.query(Program).filter(Program.code == "09.03.01").first()
+
     student = _get_or_create_user(
         db,
         email="student@skillflow.local",
         full_name="Demo Student",
         role=Role.STUDENT,
-        faculty="ИнПИТ",
+        faculty_id=faculty.id if faculty else None,
         study_group="ДЕМО-1",
-        course=2,
-        program_code="09.03.01",
+        admission_year=2024,
+        program_id=program.id if program else None,
     )
     teacher = _get_or_create_user(
         db,
         email="teacher@skillflow.local",
         full_name="Demo Teacher",
         role=Role.TEACHER,
-        faculty="ИнПИТ",
-        department="ИКСП",
+        faculty_id=faculty.id if faculty else None,
+        department_id=department.id if department else None,
     )
     if subject and subject not in teacher.teaching_subjects:
         teacher.teaching_subjects.append(subject)

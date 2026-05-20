@@ -307,3 +307,37 @@ def find_institute_by_program(program_code: str) -> str | None:
             if prog["code"] == program_code:
                 return inst.short_name
     return None
+
+
+def seed_university_catalog(db) -> None:
+    from app.models.entities import Faculty, Department, Program
+
+    for item in INSTITUTES:
+        faculty = db.query(Faculty).filter(Faculty.short_name == item.short_name).first()
+        if not faculty:
+            faculty = Faculty(full_name=item.full_name, short_name=item.short_name)
+            db.add(faculty)
+            db.flush()
+
+        for dept_data in item.departments:
+            dept = db.query(Department).filter(Department.code == dept_data["code"]).first()
+            if not dept:
+                dept = Department(
+                    name=dept_data["name"],
+                    code=dept_data["code"],
+                    faculty_id=faculty.id
+                )
+                db.add(dept)
+                db.flush()
+
+        for prog_data in item.programs:
+            prog = db.query(Program).filter(Program.code == prog_data["code"]).first()
+            if not prog:
+                prog = Program(
+                    name=prog_data["name"],
+                    code=prog_data["code"],
+                    faculty_id=faculty.id
+                )
+                db.add(prog)
+                db.flush()
+    db.commit()

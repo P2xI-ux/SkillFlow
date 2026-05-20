@@ -16,5 +16,30 @@ def list_subjects(db: Session = Depends(get_db)):
 
 
 @router.get("/university/catalog")
-def university_catalog():
-    return get_catalog_payload()
+def university_catalog(db: Session = Depends(get_db)):
+    from app.models.entities import Faculty, Department, Program
+
+    faculties = db.scalars(select(Faculty)).all()
+    payload = []
+    for faculty in faculties:
+        departments = db.scalars(
+            select(Department).where(Department.faculty_id == faculty.id)
+        ).all()
+        programs = db.scalars(
+            select(Program).where(Program.faculty_id == faculty.id)
+        ).all()
+
+        payload.append({
+            "id": faculty.id,
+            "full_name": faculty.full_name,
+            "short_name": faculty.short_name,
+            "departments": [
+                {"id": dept.id, "name": dept.name, "code": dept.code}
+                for dept in departments
+            ],
+            "programs": [
+                {"id": prog.id, "name": prog.name, "code": prog.code}
+                for prog in programs
+            ]
+        })
+    return payload

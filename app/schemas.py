@@ -18,11 +18,11 @@ class UserRegister(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     full_name: str
     role: Role
-    faculty: str | None = None
+    faculty_id: int | None = None
     study_group: str | None = None
-    course: int | None = None
-    department: str | None = None
-    program_code: str | None = None
+    admission_year: int | None = None
+    department_id: int | None = None
+    program_id: int | None = None
     subject_ids: list[int] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -38,12 +38,16 @@ class UserRegister(BaseModel):
         if self.role == Role.STUDENT:
             if not (self.study_group or "").strip():
                 raise ValueError("Для студента обязательна учебная группа")
-            if self.course is None or self.course < 1 or self.course > 6:
-                raise ValueError("Для студента курс должен быть от 1 до 6")
-            if not (self.program_code or "").strip():
+            if self.admission_year is None:
+                raise ValueError("Для студента обязателен год поступления")
+            from datetime import date
+            current_year = date.today().year
+            if self.admission_year < current_year - 6 or self.admission_year > current_year:
+                raise ValueError(f"Год поступления должен быть в диапазоне от {current_year - 6} до {current_year}")
+            if self.program_id is None:
                 raise ValueError("Для студента обязателен код направления")
         if self.role == Role.TEACHER:
-            if not (self.department or "").strip():
+            if self.department_id is None:
                 raise ValueError("Для преподавателя обязательна кафедра")
             if not self.subject_ids:
                 raise ValueError("Для преподавателя нужно выбрать хотя бы одну дисциплину")
@@ -60,13 +64,34 @@ class UserResponse(BaseModel):
     email: EmailStr
     full_name: str
     role: Role
-    faculty: str | None = None
+    faculty_id: int | None = None
+    department_id: int | None = None
+    program_id: int | None = None
     study_group: str | None = None
+    admission_year: int | None = None
     course: int | None = None
-    department: str | None = None
-    program_code: str | None = None
     telegram_id: str | None = None
     teaching_subjects: list["SubjectResponse"] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_computed_properties(cls, data):
+        if not isinstance(data, dict):
+            return {
+                "id": data.id,
+                "email": data.email,
+                "full_name": data.full_name,
+                "role": data.role,
+                "faculty_id": data.faculty_id,
+                "department_id": data.department_id,
+                "program_id": data.program_id,
+                "study_group": data.computed_study_group,
+                "admission_year": data.admission_year,
+                "course": data.computed_course,
+                "telegram_id": data.telegram_id,
+                "teaching_subjects": data.teaching_subjects,
+            }
+        return data
 
     class Config:
         from_attributes = True

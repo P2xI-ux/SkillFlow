@@ -16,7 +16,7 @@ def ratings(subject_id: int | None = None, db: Session = Depends(get_db)):
             "total_score": item.total_score,
             "position": item.position,
             "subject_name": item.subject.name,
-            "faculty": item.student.faculty,
+            "faculty": item.student.faculty_rel.short_name if item.student.faculty_rel else None,
         }
         for item in leaderboard
     ]
