@@ -1,7 +1,7 @@
 import { state } from '../../core/state.js';
 import { el, hasElement, queryAll } from '../../core/dom.js';
 import { pageUrls } from '../../shared/constants.js';
-import { renderAttemptQuestion, renderTestPreview, statusLabel } from '../../shared/templates.js';
+import { escapeHtml, questionTypeLabel, renderAttemptQuestion, renderTestPreview, statusLabel } from '../../shared/templates.js';
 import { fetchTestById } from './tests.api.js';
 
 export async function openTest(testId, submitAttemptHandler, showDashboardScreen, allowRetake = false) {
@@ -16,15 +16,15 @@ export async function openTest(testId, submitAttemptHandler, showDashboardScreen
       (question, index) => `
     <div class="question-block">
       <p class="helper-text">Вопрос ${index + 1} из ${test.questions.length}</p>
-      <strong>${question.text}</strong>
-      <p>${question.question_type} · ${question.points} баллов</p>
+      <strong>${escapeHtml(question.text)}</strong>
+      <p>${questionTypeLabel(question.question_type)} · ${question.points} баллов</p>
       ${renderAttemptQuestion(question)}
     </div>
   `,
     )
     .join('');
   el('testRunner').innerHTML = `
-    <h3>${test.title}</h3>
+    <h3>${escapeHtml(test.title)}</h3>
     <p class="helper-text">${allowRetake ? 'Повторная попытка' : 'Новая попытка'} · вопросов: ${test.questions.length}</p>
     <form id="attemptForm">${questionsHtml}<button class="primary-button" type="submit">Завершить тест</button></form>
     <div id="attemptResult" class="message"></div>
@@ -43,9 +43,9 @@ export function renderTests(tests, openTestHandler) {
       (test) => `
     <article class="list-item test-list-item">
       <div>
-        <strong>${test.title}</strong>
-        <p>${test.description || 'Без описания'}</p>
-        <p>${test.subject_name} · сложность ${test.difficulty} · вопросов: ${test.question_count}</p>
+        <strong>${escapeHtml(test.title)}</strong>
+        <p>${escapeHtml(test.description || 'Без описания')}</p>
+        <p>${escapeHtml(test.subject_name)} · сложность ${escapeHtml(test.difficulty)} · вопросов: ${escapeHtml(test.question_count)}</p>
       </div>
       <button class="primary-button compact" type="button" data-open-test="${test.id}" data-test-attempted="${test.attempted ? '1' : '0'}">
         ${test.attempted ? 'Повторить' : 'Открыть'}
@@ -95,7 +95,7 @@ function showRetakeModal(testId, openTestHandler) {
   overlay.classList.remove('hidden');
 }
 
-export function renderMyTests() {
+export function renderMyTests(submitDraftHandler = null) {
   if (!hasElement('myTestsList')) return;
   if (state.currentUser?.role !== 'STUDENT') return;
   if (!state.myTests.length) {
@@ -108,23 +108,36 @@ export function renderMyTests() {
       (item) => `
         <article class="list-item test-list-item">
           <div>
-            <strong>${item.title}</strong>
-            <p>${item.subject_name} · вопросов: ${item.question_count}</p>
+            <strong>${escapeHtml(item.title)}</strong>
+            <p>${escapeHtml(item.subject_name)} · вопросов: ${escapeHtml(item.question_count)}</p>
             <span class="status-badge status-${item.status.toLowerCase()}">${statusLabel(item.status)}</span>
           </div>
-          <button class="soft-button compact" type="button" data-view-my-test="${item.id}">Содержимое</button>
+          <div class="inline-actions test-card-actions">
+            <button class="soft-button compact" type="button" data-view-my-test="${item.id}">Содержимое</button>
+            ${
+              item.status === 'DRAFT'
+                ? `<button class="primary-button compact" type="button" data-submit-my-test="${item.id}">На модерацию</button>`
+                : ''
+            }
+          </div>
         </article>
       `,
     )
     .join('');
   queryAll('[data-view-my-test]').forEach((button) => button.addEventListener('click', () => renderMyTestPreview(button.dataset.viewMyTest)));
+  queryAll('[data-submit-my-test]').forEach((button) => button.addEventListener('click', () => submitDraftHandler?.(button.dataset.submitMyTest, button)));
 }
 
 async function renderMyTestPreview(testId) {
   if (!hasElement('myTestPreview')) return;
   el('myTestPreview').className = 'test-preview empty-state';
   el('myTestPreview').innerHTML = 'Загружаем содержимое теста...';
-  const test = await fetchTestById(testId);
-  el('myTestPreview').className = 'test-preview';
-  el('myTestPreview').innerHTML = renderTestPreview(test);
+  try {
+    const test = await fetchTestById(testId);
+    el('myTestPreview').className = 'test-preview';
+    el('myTestPreview').innerHTML = renderTestPreview(test);
+  } catch (error) {
+    el('myTestPreview').className = 'test-preview empty-state';
+    el('myTestPreview').textContent = error.message;
+  }
 }

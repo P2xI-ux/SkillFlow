@@ -131,7 +131,7 @@ async function loadAchievements() {
 async function loadMyTests() {
   if (!state.token || state.currentUser?.role !== 'STUDENT') return;
   state.myTests = await fetchMyTests();
-  renderMyTests();
+  renderMyTests(submitDraftForModeration);
 }
 
 async function loadPrivateData() {
@@ -177,16 +177,26 @@ async function submitLatestTest() {
   if (!state.myTests?.length) return (el('createMessage').textContent = 'Сначала создайте тест.');
   const draft = state.myTests.find((item) => item.status === 'DRAFT');
   if (!draft) return (el('createMessage').textContent = 'У вас нет черновиков для отправки.');
-  const button = el('submitLatestTestBtn');
-  setBusy(button, true, 'Отправляем...');
+  await submitDraftForModeration(draft.id, el('submitLatestTestBtn'), el('createMessage'));
+}
+
+async function submitDraftForModeration(testId, control = null, messageBox = null) {
+  setBusy(control, true, 'Отправляем...');
   try {
-    const test = await submitTestApi(draft.id);
-    el('createMessage').textContent = `Тест "${test.title}" отправлен на модерацию.`;
+    const test = await submitTestApi(testId);
+    const message = `Тест "${test.title}" отправлен на модерацию.`;
+    if (messageBox) messageBox.textContent = message;
+    showToast('Мои тесты', message, 5);
     await loadMyTests();
+    if (hasElement('myTestPreview')) {
+      el('myTestPreview').className = 'test-preview empty-state';
+      el('myTestPreview').textContent = 'Тест отправлен на модерацию. Откройте его заново, чтобы увидеть обновлённый статус.';
+    }
   } catch (error) {
-    el('createMessage').textContent = error.message;
+    if (messageBox) messageBox.textContent = error.message;
+    showToast('Мои тесты', error.message, 8);
   } finally {
-    setBusy(button, false);
+    setBusy(control, false);
   }
 }
 

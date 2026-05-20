@@ -2,6 +2,10 @@
   margin-top: 1rem;
 }
 
+body[data-page='dashboard'] .topbar {
+  position: static;
+}
+
 .telegram-code-modal-overlay {
   position: fixed;
   inset: 0;
@@ -44,6 +48,10 @@
 
 .test-list-item > div {
   min-width: 0;
+}
+
+.test-card-actions {
+  flex: 0 0 auto;
 }
 
 .test-list-item strong,
