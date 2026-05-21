@@ -1,17 +1,18 @@
 import asyncio
 import logging
 
-# Force default asyncio event loop policy to avoid issues with uvloop in arq worker
+from aiogram import Bot
+from arq.connections import RedisSettings
+from app.core.config import settings
+
+# Force default asyncio event loop policy to avoid issues with uvloop in arq worker.
+# We do this after imports to override any event loop policy changes made by imported modules (e.g., aiogram or uvloop).
 asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 
 try:
     asyncio.get_event_loop()
 except RuntimeError:
     asyncio.set_event_loop(asyncio.new_event_loop())
-
-from aiogram import Bot
-from arq.connections import RedisSettings
-from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
