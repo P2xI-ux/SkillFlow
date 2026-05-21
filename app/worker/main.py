@@ -1,7 +1,9 @@
 import asyncio
 import logging
 
-# Ensure an event loop is set for the main thread to prevent uvloop / arq conflicts in Python 3.10+
+# Force default asyncio event loop policy to avoid issues with uvloop in arq worker
+asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
 try:
     asyncio.get_event_loop()
 except RuntimeError:
