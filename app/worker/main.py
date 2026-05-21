@@ -1,4 +1,12 @@
+import asyncio
 import logging
+
+# Ensure an event loop is set for the main thread to prevent uvloop / arq conflicts in Python 3.10+
+try:
+    asyncio.get_event_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
 from aiogram import Bot
 from arq.connections import RedisSettings
 from app.core.config import settings
