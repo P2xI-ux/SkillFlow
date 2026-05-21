@@ -50,8 +50,8 @@ app/
 bot/             Telegram-бот (FSM-сценарии прохождения)
 ```
 
-Вся подробная техническая документация и описание паттернов находятся в файле:
-- `SkillFlow Project.docx`
+Вся подробная техническая документация и описание паттернов находятся в папке `docs/`:
+- `docs/SkillFlow Project.docx`
 
 ## Запуск локально
 
@@ -161,4 +161,4 @@ npm run lint
 
 
 ## Merge guide
-- Для безопасного merge в `main` используйте `MERGE_PLAYBOOK.md`.
+- Для безопасного merge в `main` используйте `docs/MERGE_PLAYBOOK.md`.
