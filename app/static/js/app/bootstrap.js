@@ -5,7 +5,7 @@ import { applyTheme, bindThemeToggle } from '../features/theme/theme.js';
 import { bindTabs, bindRoleSwitch, syncRoleSwitch, updateAuthControls, updateRoleUI } from '../features/auth/auth.ui.js';
 import { login, logout, register } from '../features/auth/auth.handlers.js';
 import { fetchMyAchievements, fetchMyProfile, fetchMyStats, fetchSubjects, fetchUniversityCatalog } from '../features/profile/profile.api.js';
-import { renderAchievements, renderProfile, renderRoleCapabilities, renderStats, showDashboardScreen, toggleRoleWidgets } from '../features/profile/profile.ui.js';
+import { renderAchievements, renderProfile, renderStats, showDashboardScreen, toggleRoleWidgets } from '../features/profile/profile.ui.js';
 import { fetchRatings } from '../features/rating/rating.api.js';
 import { renderRatings, renderStudentRatings, renderTeacherStats, renderTeacherStatsFilters } from '../features/rating/rating.ui.js';
 import { addQuestionBlock, resetConstructor } from '../features/constructor/constructor.ui.js';
@@ -20,7 +20,7 @@ import { showAchievementToasts, showTelegramCodeModal, showToast } from '../feat
 import { setBusy } from '../core/ui.js';
 
 function hooks() {
-  return { renderProfile, renderRoleCapabilities, toggleRoleWidgets, loadPrivateData };
+  return { renderProfile, toggleRoleWidgets, loadPrivateData };
 }
 
 async function loadProfile() {
@@ -31,7 +31,6 @@ async function loadProfile() {
   updateRoleUI();
   updateAuthControls();
   renderProfile();
-  renderRoleCapabilities();
   toggleRoleWidgets();
 }
 
@@ -207,8 +206,13 @@ async function linkTelegram() {
   if (state.telegramLinkTimer) window.clearTimeout(state.telegramLinkTimer);
   try {
     const data = await requestTelegramLinkCode();
-    showTelegramCodeModal(data.code, Math.max(1, data.ttl_seconds));
-    showToast('Telegram', 'Код отображён в отдельном окне.', 5);
+    showTelegramCodeModal(data.code, Math.max(1, data.ttl_seconds), () => {
+      if (state.telegramLinkTimer) {
+        window.clearTimeout(state.telegramLinkTimer);
+        state.telegramLinkTimer = null;
+      }
+      loadProfile();
+    });
     state.telegramLinkTimer = window.setTimeout(linkTelegram, Math.max(1, data.ttl_seconds) * 1000);
     await loadProfile();
   } catch (error) {

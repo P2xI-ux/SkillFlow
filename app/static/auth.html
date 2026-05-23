@@ -44,17 +44,17 @@
 
     <main>
       <section class="auth-layout">
-        <article class="neumorph-panel auth-intro">
-          <p class="eyebrow">Доступ к системе</p>
-          <h1 class="page-title">Авторизация / Регистрация</h1>
-          <p>Выберите роль: студент или преподаватель. После выбора доступны соответствующие поля.</p>
-          <div class="role-switch" id="roleSwitch">
-            <button class="role-pill active" type="button" data-role="STUDENT">Студент</button>
-            <button class="role-pill" type="button" data-role="TEACHER">Преподаватель</button>
-          </div>
-        </article>
-
         <article class="neumorph-panel auth-card">
+          <div class="auth-header" style="text-align: center; margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <p class="eyebrow" style="margin-bottom: 4px;">Доступ к системе</p>
+            <h2 style="margin-top: 0; margin-bottom: 8px; font-size: 1.8rem; font-weight: 700;">Авторизация / Регистрация</h2>
+            <p style="margin-bottom: 12px; font-size: 0.9rem; color: var(--muted);">Выберите роль: студент или преподаватель. После выбора доступны соответствующие поля.</p>
+            <div class="role-switch" id="roleSwitch" style="display: inline-flex; justify-content: center;">
+              <button class="role-pill active" type="button" data-role="STUDENT">Студент</button>
+              <button class="role-pill" type="button" data-role="TEACHER">Преподаватель</button>
+            </div>
+          </div>
+
           <div class="tabs segmented-control">
             <button class="tab active" type="button" data-tab="login">Авторизация</button>
             <button class="tab" type="button" data-tab="register">Регистрация</button>

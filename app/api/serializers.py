@@ -58,7 +58,12 @@ def serialize_question(question):
         "question_type": question.question_type,
         "sort_order": question.sort_order,
         "options": [
-            {"id": option.id, "text": option.text, "sort_order": option.sort_order}
+            {
+                "id": option.id,
+                "text": option.text,
+                "sort_order": option.sort_order,
+                "is_correct": option.is_correct,
+            }
             for option in sorted(
                 question.answer_options, key=lambda item: item.sort_order
             )
@@ -67,4 +72,8 @@ def serialize_question(question):
         "matching_options": random.sample(matching_options, len(matching_options))
         if matching_options
         else [],
+        "correct_answer": payload.get("correct_answer"),
+        "matching_pairs": [
+            {"left": p["left"], "right": p["right"]} for p in matching_pairs
+        ],
     }

@@ -270,8 +270,8 @@ textarea { min-height: 110px; resize: vertical; }
 .filters-grid { flex-wrap: wrap; padding: 12px; margin-bottom: 12px; }
 .filters-grid .field-group { flex: 1 1 200px; }
 
-.auth-layout { display: flex; gap: 16px; flex-wrap: wrap; }
-.auth-intro, .auth-card { flex: 1 1 420px; }
+.auth-layout { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+.auth-card { flex: 1 1 420px; max-width: 520px; width: 100%; }
 .segmented-control { padding: 6px; margin-bottom: 12px; }
 .auth-form { gap: 12px; }
 .choice-item label { display: flex; gap: 8px; align-items: center; cursor: pointer; }

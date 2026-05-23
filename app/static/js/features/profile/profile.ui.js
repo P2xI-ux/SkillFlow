@@ -36,27 +36,6 @@ export function renderProfile() {
   el('profileBox').innerHTML = profileRows.map(([label, value]) => `<div><strong>${label}</strong><br>${value}</div>`).join('');
 }
 
-export function renderRoleCapabilities() {
-  if (!hasElement('roleCapabilities')) return;
-  if (!state.currentUser) {
-    el('roleCapabilities').innerHTML = '<div class="empty-state">После входа отобразятся доступные функциональные блоки.</div>';
-    return;
-  }
-  if (state.currentUser.role === 'TEACHER') {
-    el('roleCapabilities').innerHTML = `
-      <div class="capability-item"><strong>Модерация тестов</strong><p>Проверка и публикация тестов только по вашим предметам.</p></div>
-      <div class="capability-item"><strong>Статистика по предметам</strong><p>Анализ рейтинга студентов в разрезе дисциплины.</p></div>
-      <div class="capability-item"><strong>Личная информация</strong><p>Профиль и привязка Telegram.</p></div>
-    `;
-  } else {
-    el('roleCapabilities').innerHTML = `
-      <div class="capability-item"><strong>Создание теста</strong><p>Конструктор с вопросами и ответами.</p></div>
-      <div class="capability-item"><strong>Рейтинг и результат теста</strong><p>Каталог тестов, прохождение и динамика баллов.</p></div>
-      <div class="capability-item"><strong>Личная информация</strong><p>Профиль, статистика и привязка Telegram.</p></div>
-    `;
-  }
-}
-
 export function toggleRoleWidgets() {
   const role = state.currentUser?.role;
   queryAll('.student-only').forEach((item) => item.classList.toggle('hidden-by-role', role !== 'STUDENT'));

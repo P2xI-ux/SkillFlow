@@ -15,7 +15,6 @@ export async function setSession(data, hooks) {
   updateRoleUI();
   updateAuthControls();
   hooks.renderProfile();
-  hooks.renderRoleCapabilities();
   hooks.toggleRoleWidgets();
   await hooks.loadPrivateData();
 }
@@ -26,7 +25,6 @@ export function logout({ redirect = true } = {}, hooks) {
   storage.clearToken();
   updateAuthControls();
   hooks.renderProfile();
-  hooks.renderRoleCapabilities();
   hooks.toggleRoleWidgets();
   if (redirect) window.location.href = pageUrls.home;
 }

@@ -154,6 +154,7 @@ class AnswerOptionResponse(BaseModel):
     id: int
     text: str
     sort_order: int
+    is_correct: bool = False
 
     class Config:
         from_attributes = True
@@ -168,6 +169,8 @@ class QuestionResponse(BaseModel):
     options: list[AnswerOptionResponse]
     matching_left: list[str] = Field(default_factory=list)
     matching_options: list[str] = Field(default_factory=list)
+    correct_answer: str | None = None
+    matching_pairs: list[MatchingPairCreate] = Field(default_factory=list)
 
 
 class TestListItem(BaseModel):
