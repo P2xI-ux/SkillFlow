@@ -30,10 +30,15 @@ if settings.cors_origin_list:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+from fastapi.templating import Jinja2Templates
+
 app.include_router(router)
 
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+templates_dir = Path(__file__).parent / "templates"
+templates = Jinja2Templates(directory=templates_dir)
 
 
 @app.middleware("http")
@@ -131,18 +136,18 @@ def setup_event_handlers():
 
 
 @app.get("/")
-def root():
-    return FileResponse(static_dir / "index.html")
+def root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/auth")
-def auth_page():
-    return FileResponse(static_dir / "auth.html")
+def auth_page(request: Request):
+    return templates.TemplateResponse("auth.html", {"request": request})
 
 
 @app.get("/dashboard")
-def dashboard_page():
-    return FileResponse(static_dir / "dashboard.html")
+def dashboard_page(request: Request):
+    return templates.TemplateResponse("dashboard.html", {"request": request})
 
 
 @app.get("/health")

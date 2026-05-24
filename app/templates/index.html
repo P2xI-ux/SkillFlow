@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}SkillFlow — главная{% endblock %}
+
+{% block page_name %}home{% endblock %}
+
+{% block brand_subtitle %}Платформа тестирования и рейтинга{% endblock %}
+
+{% block content %}
+<section class="hero-grid">
+  <article class="hero-card neumorph-panel">
+    <p class="eyebrow">SkillFlow</p>
+    <h1>Функциональная платформа для тестов, рейтинга и прогресса.</h1>
+    <p class="hero-copy">На главной странице только ключевая информация: что это за система, как формируется рейтинг и как быстро перейти к работе.</p>
+  </article>
+
+  <article class="neumorph-panel rating-panel">
+    <div class="section-title">
+      <div>
+        <p class="eyebrow">Рейтинг</p>
+        <h2>Таблица участников</h2>
+      </div>
+      <button id="refreshTestsBtn" class="soft-button compact" type="button">Обновить</button>
+    </div>
+    <div class="filters-grid inset-panel">
+      <label class="field-group">
+        <span>Предмет</span>
+        <select id="ratingSubjectFilter"><option value="">Все предметы</option></select>
+      </label>
+      <label class="field-group">
+        <span>Институт</span>
+        <select id="ratingFacultyFilter"><option value="">Все институты</option></select>
+      </label>
+    </div>
+    <div id="ratingsList" class="list rating-list"></div>
+  </article>
+</section>
+{% endblock %}

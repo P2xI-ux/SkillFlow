@@ -20,7 +20,6 @@ export function updateAuthControls() {
   const loggedIn = Boolean(state.token);
   el('authButton')?.classList.toggle('hidden', loggedIn || state.currentPage === 'auth');
   el('homeActionButton')?.classList.toggle('hidden', loggedIn);
-  queryAll('.topbar-nav').forEach((nav) => nav.classList.toggle('hidden', loggedIn));
   el('profileMenu')?.classList.toggle('hidden', !loggedIn);
   if (loggedIn && hasElement('profileMenuToggle')) {
     el('profileMenuToggle').textContent = (state.currentUser?.full_name || 'П').trim().charAt(0).toUpperCase();

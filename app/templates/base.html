@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}SkillFlow{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+  {% block extra_head %}{% endblock %}
+</head>
+<body data-page="{% block page_name %}home{% endblock %}">
+  <div class="page-shell">
+    <header class="topbar neumorph-panel">
+      <a class="brand" href="/" aria-label="На главную страницу SkillFlow">
+        <img class="brand-logo" src="/static/img/SkillFlow.jpeg" alt="SkillFlow Logo" style="border-radius: 12px; object-fit: cover;" />
+        <span>
+          <strong>SkillFlow</strong>
+          <small>{% block brand_subtitle %}Платформа тестирования и рейтинга{% endblock %}</small>
+        </span>
+      </a>
+
+      <div class="topbar-actions">
+        <button id="themeToggleBtn" class="theme-toggle" type="button" aria-label="Переключить тему">
+          <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+          <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+        </button>
+        {% block topbar_extra_actions %}
+        <a id="authButton" class="soft-button compact" href="/auth" data-auth-cta>Вход</a>
+        {% endblock %}
+        <a id="homeActionButton" class="soft-button compact" href="/">Главная</a>
+        <div id="profileMenu" class="profile-menu hidden">
+          <button id="profileMenuToggle" class="profile-avatar" type="button" aria-label="Меню профиля">П</button>
+          <div id="profileMenuPanel" class="profile-menu-panel hidden">
+            <a href="/dashboard">Личный кабинет</a>
+            <a href="/">Главная</a>
+            <button id="logoutBtn" type="button">Выход</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer neumorph-panel">
+      <div>
+        <strong>SkillFlow</strong>
+        <p>Разработчик: SkillFlow Team · © 2026</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/static/js/app/main.js" type="module"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>
