@@ -4,3 +4,4 @@ __pycache__/
 skillflow.db
 .venv/
 .env
+.DS_Store
