@@ -27,8 +27,12 @@ def upgrade():
     existing_tables = set(inspector.get_table_names())
 
     if bind.dialect.name == "postgresql":
-        op.execute("ALTER TYPE questiontype ADD VALUE IF NOT EXISTS 'TEXT_ANSWER'")
-        op.execute("ALTER TYPE questiontype ADD VALUE IF NOT EXISTS 'MATCHING'")
+        type_exists = bind.execute(
+            sa.text("SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'questiontype')")
+        ).scalar()
+        if type_exists:
+            op.execute("ALTER TYPE questiontype ADD VALUE IF NOT EXISTS 'TEXT_ANSWER'")
+            op.execute("ALTER TYPE questiontype ADD VALUE IF NOT EXISTS 'MATCHING'")
 
     if "users" not in existing_tables:
         op.create_table(
